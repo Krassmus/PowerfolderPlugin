@@ -236,7 +236,7 @@ class PowerfolderFolder extends VirtualFolderType {
             return;
         }
         $webdav = $this->getWebDavURL();
-        $root = "remote.php/webdav/".$this->id;
+        $root = "webdav/".$this->id;
 
 
         $header = array();
