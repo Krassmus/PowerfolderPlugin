@@ -4,6 +4,11 @@ class PowerfolderFolder extends VirtualFolderType {
 
     protected $did_propfind = false;
 
+    public static function availableInRange($range_id_or_object, $user_id)
+    {
+        return $range_id_or_object == 'PowerfolderPlugin';
+    }
+
     public function isWritable($user_id)
     {
         return true;
@@ -34,6 +39,38 @@ class PowerfolderFolder extends VirtualFolderType {
         return true;
     }
 
+
+    public function store()
+    {
+        $old_id = $this->parent_id . '/' . $this->name;
+
+        if ($this->getId() != $old_id) {
+
+            $webdav = $this->getWebDavURL();
+            $header = array();
+            $header[] = "Authorization: Bearer ".\Powerfolder\OAuth::getAccessToken();
+            $header[] = "Destination: ". $webdav . $this->id;
+
+            $r = curl_init();
+            curl_setopt($r, CURLOPT_CUSTOMREQUEST, "MOVE");
+            curl_setopt($r, CURLOPT_URL, $webdav . $old_id);
+            curl_setopt($r, CURLOPT_HTTPHEADER, ($header));
+            curl_setopt($r, CURLOPT_RETURNTRANSFER, 1);
+            curl_exec($r);
+            $status = curl_getinfo($r, CURLINFO_HTTP_CODE);
+            curl_close($r);
+
+            return ($status >= 200) && ($status < 300);
+
+        }
+        return false;
+    }
+
+    public function delete()
+    {
+        return $this->deleteFile($this->id);
+    }
+
     public function deleteFile($file_ref_id)
     {
         $webdav = $this->getWebDavURL();
@@ -53,11 +90,130 @@ class PowerfolderFolder extends VirtualFolderType {
         return ($status >= 200) && ($status < 300);
     }
 
-    /*public function createFile($filedata)
+    public function createFile($filedata)
     {
-        $filedata['name'];
-        $filedata['tmp_path'];
-    }*/
+        $webdav = $this->getWebDavURL();
+
+        $file_ref_id = $this->id . (mb_strlen($this->id)?'/':'') .  $filedata['name'];
+
+        $header = array();
+        $header[] = "Authorization: Bearer ".\Powerfolder\OAuth::getAccessToken();
+
+        $data = $filedata['tmp_name'];
+        $fh_res = fopen($data, 'r');
+
+        $r = curl_init();
+        curl_setopt($r, CURLOPT_PUT, 1);
+        curl_setopt($r, CURLOPT_URL, $webdav . $file_ref_id);
+        curl_setopt($r, CURLOPT_HTTPHEADER, ($header));
+        curl_setopt($r, CURLOPT_INFILE, $fh_res);
+        curl_setopt($r, CURLOPT_INFILESIZE, filesize($data));
+        curl_setopt($r, CURLOPT_RETURNTRANSFER, 1);
+        curl_exec($r);
+        $status = curl_getinfo($r, CURLINFO_HTTP_CODE);
+        curl_close($r);
+        fclose($fh_res);
+
+        $plugin = PluginManager::getInstance()->getPluginById($this->plugin_id);
+        return $plugin->getPreparedFile($file_ref_id);
+    }
+
+    public function copyFile($file_ref_id)
+    {
+        $webdav = $this->getWebDavURL();
+
+        $tmp_parts = explode('/', $file_ref_id);
+        $destination = $webdav . $this->id . (mb_strlen($this->id)?'/':'') . end($tmp_parts);
+
+        $header = array();
+        $header[] = "Authorization: Bearer ".\Powerfolder\OAuth::getAccessToken();
+        $header[] = "Destination: ".$destination;
+
+        $r = curl_init();
+        curl_setopt($r, CURLOPT_CUSTOMREQUEST, "COPY");
+        curl_setopt($r, CURLOPT_URL, $webdav . $file_ref_id);
+        curl_setopt($r, CURLOPT_HTTPHEADER, ($header));
+        curl_setopt($r, CURLOPT_RETURNTRANSFER, 1);
+
+        curl_exec($r);
+        $status = curl_getinfo($r, CURLINFO_HTTP_CODE);
+        curl_close($r);
+
+        $plugin = PluginManager::getInstance()->getPluginById($this->plugin_id);
+        return $plugin->getPreparedFile($file_ref_id);
+    }
+
+    public function moveFile($file_ref_id)
+    {
+        $webdav = $this->getWebDavURL();
+
+        $tmp_parts = explode('/', $file_ref_id);
+        $destination = $webdav . $this->id . (mb_strlen($this->id)?'/':'') . end($tmp_parts);
+
+        $header = array();
+        $header[] = "Authorization: Bearer ".\Powerfolder\OAuth::getAccessToken();
+        $header[] = "Destination: ".$destination;
+
+        $r = curl_init();
+        curl_setopt($r, CURLOPT_CUSTOMREQUEST, "MOVE");
+        curl_setopt($r, CURLOPT_URL, $webdav . $file_ref_id);
+        curl_setopt($r, CURLOPT_HTTPHEADER, ($header));
+        curl_setopt($r, CURLOPT_RETURNTRANSFER, 1);
+
+        curl_exec($r);
+        $status = curl_getinfo($r, CURLINFO_HTTP_CODE);
+        curl_close($r);
+
+        $plugin = PluginManager::getInstance()->getPluginById($this->plugin_id);
+        return $plugin->getPreparedFile($file_ref_id);
+    }
+
+    public function editFile($file_ref_id, $name = null, $description = null,  $content_terms_of_use_id = null)
+    {
+        if(!$name) {
+            return false;
+        }
+
+        $webdav = $this->getWebDavURL();
+        $destination = $webdav . $this->id . (mb_strlen($this->id)?'/':'') . $name;
+
+        $header = array();
+        $header[] = "Authorization: Bearer ".\Powerfolder\OAuth::getAccessToken();
+        $header[] = "Destination: ".$destination;
+
+        $r = curl_init();
+        curl_setopt($r, CURLOPT_CUSTOMREQUEST, "MOVE");
+        curl_setopt($r, CURLOPT_URL, $webdav . $file_ref_id);
+        curl_setopt($r, CURLOPT_HTTPHEADER, ($header));
+        curl_setopt($r, CURLOPT_RETURNTRANSFER, 1);
+
+        curl_exec($r);
+        $status = curl_getinfo($r, CURLINFO_HTTP_CODE);
+        curl_close($r);
+
+        $plugin = PluginManager::getInstance()->getPluginById($this->plugin_id);
+        return $plugin->getPreparedFile($file_ref_id);
+    }
+
+    public function createSubfolder(FolderType $foldertype)
+    {
+        $webdav = $this->getWebDavURL();
+        $header = array();
+        $header[] = "Authorization: Bearer ".\Powerfolder\OAuth::getAccessToken();
+
+        $r = curl_init();
+
+        curl_setopt($r, CURLOPT_CUSTOMREQUEST, "MKCOL");
+        curl_setopt($r, CURLOPT_URL, $webdav . $foldertype->getId());
+        curl_setopt($r, CURLOPT_HTTPHEADER, ($header));
+        curl_setopt($r, CURLOPT_RETURNTRANSFER, 1);
+
+        curl_exec($r);
+        $status = curl_getinfo($r, CURLINFO_HTTP_CODE);
+        curl_close($r);
+
+        return (($status >= 200) && ($status < 300)) ? $foldertype : false;
+    }
 
     protected function getWebDavURL()
     {
@@ -70,7 +226,7 @@ class PowerfolderFolder extends VirtualFolderType {
         if ($url[strlen($url) - 1] !== "/") {
             $url .= "/";
         }
-        $webdav = $url . "remote.php/webdav/";
+        $webdav = $url . "webdav/";
         return $webdav;
     }
 
@@ -142,7 +298,8 @@ class PowerfolderFolder extends VirtualFolderType {
                     'id' => ($this->id ? $this->id."/" : "").$file_attributes['name'],
                     'name' => $file_attributes['name'],
                     'parent_id' => $this->id,
-                    'range_type' => $this->plugin_id
+                    'range_type' => $this->plugin_id,
+                    'range_id' => 'PowerfolderPlugin'
                 ), $this->plugin_id);
             } else {
                 $this->files[] = (object) array(
@@ -169,6 +326,36 @@ class PowerfolderFolder extends VirtualFolderType {
     {
         $this->fetchObjects();
         return $this->subfolders;
+    }
+
+    public function setDataFromEditTemplate($request)
+    {
+
+        if (!$request['name']) {
+            return MessageBox::error(_('Die Bezeichnung des Ordners fehlt.'));
+        }
+
+        $plugin = PluginEngine::getPlugin($request["from_plugin"]);
+
+        if (empty($request['parent_id'])) {
+            $this->folderdata['id'] = $request['name'];
+        } else {
+            $this->folderdata['id'] = $request['parent_id'] . '/' . $request['name'];
+        }
+        $this->folderdata['parent_id'] = $request['parent_id'];
+        $this->folderdata['range_type'] = $plugin->getPluginId();
+        $this->folderdata['range_id'] = $plugin->getPluginName();
+        $this->folderdata['plugin_id'] = $plugin->getPluginId();
+        return $this;
+    }
+
+    public function getParent()
+    {
+        if ($this->id == $this->parent_id) {
+            return null;
+        }
+        $plugin = PluginEngine::getPlugin('PowerfolderPlugin');
+        return $plugin->getFolder($this->parent_id);
     }
 
 }

@@ -15,12 +15,14 @@ class PowerfolderPlugin extends StudIPPlugin implements FilesystemPlugin {
     public function getFolder($folder_id = null)
     {
         $folder_path = explode("/", $folder_id);
-        array_pop($folder_path);
+        $name = array_pop($folder_path);
         $parent_folder_id = implode("/", $folder_path);
         $folder = new PowerfolderFolder(array(
             'id' => $folder_id,
+            'name' => $name,
             'parent_id' => $parent_folder_id,
-            'range_type' => $this->getPluginId()
+            'range_type' => $this->getPluginId(),
+            'range_id' => $this->getPluginName()
         ), $this->getPluginId());
         return $folder;
     }
@@ -42,7 +44,7 @@ class PowerfolderPlugin extends StudIPPlugin implements FilesystemPlugin {
         if ($url[strlen($url) - 1] !== "/") {
             $url .= "/";
         }
-        $webdav = $url . "remote.php/webdav/";
+        $webdav = $url . "webdav/";
 
 
         $header = array();
@@ -69,13 +71,15 @@ class PowerfolderPlugin extends StudIPPlugin implements FilesystemPlugin {
         $folder_path = explode("/", $file_id);
         $filename = array_pop($folder_path);
         $folder_id = implode("/", $folder_path);
-        array_pop($folder_path);
+        $name = array_pop($folder_path);
         $parent_folder_id = implode("/", $folder_path);
 
         $folder = new PowerfolderFolder(array(
             'id' => $folder_id,
+            'name' => $name,
             'parent_id' => $parent_folder_id,
-            'range_type' => $this->getPluginId()
+            'range_type' => $this->getPluginId(),
+            'range_id' => $this->getPluginName()
         ), $this->getPluginId());
 
         foreach ($folder->getFiles() as $file_info) {
@@ -94,6 +98,8 @@ class PowerfolderPlugin extends StudIPPlugin implements FilesystemPlugin {
         $file->download_url = $info->download_url;
         $file->mkdate       = $info->chdate;
         $file->chdate       = $info->chdate;
+        $file->content_terms_of_use_id = 'UNDEF_LICENSE';
+
         if ($with_blob) {
             $parts = parse_url(UserConfig::get($GLOBALS['user']->id)->POWERFOLDER_ENDPOINT);
             $url = $parts['scheme']
@@ -107,7 +113,7 @@ class PowerfolderPlugin extends StudIPPlugin implements FilesystemPlugin {
             if ($url[strlen($url) - 1] !== "/") {
                 $url .= "/";
             }
-            $webdav = $url . "remote.php/webdav/";
+            $webdav = $url . "webdav/";
 
 
             $header = array();
@@ -161,6 +167,57 @@ class PowerfolderPlugin extends StudIPPlugin implements FilesystemPlugin {
     public function isPersonalFileArea()
     {
         return UserConfig::get($GLOBALS['user']->id)->POWERFOLDER_ACTIVATED;
+    }
+
+    protected function getType($id)
+    {
+        $parts = parse_url(UserConfig::get($GLOBALS['user']->id)->POWERFOLDER_ENDPOINT);
+        $url = $parts['scheme']
+            ."://"
+            .$parts['host']
+            .($parts['port'] ? ":".$parts['port'] : "")
+            .($parts['path'] ?: "");
+        if ($url[strlen($url) - 1] !== "/") {
+            $url .= "/";
+        }
+        $webdav = $url . "webdav/";
+        $root = "remote.php/webdav/".$this->id;
+        $header = array();
+        $header[] = "Authorization: Bearer ".\Powerfolder\OAuth::getAccessToken();
+        $r = curl_init();
+        curl_setopt($r, CURLOPT_CUSTOMREQUEST, "PROPFIND");
+        curl_setopt($r, CURLOPT_URL, $webdav."/".$id);
+        curl_setopt($r, CURLOPT_HTTPHEADER, ($header));
+        curl_setopt($r, CURLOPT_RETURNTRANSFER, 1);
+        $xml = curl_exec($r);
+        curl_close($r);
+        $doc = new DOMDocument();
+        $doc->loadXML($xml);
+
+        foreach ($doc->getElementsByTagNameNS("DAV:","response") as $file) {
+            foreach ($file->childNodes as $node) {
+                if ($node->tagName === "d:propstat") {
+                    foreach ($node->childNodes as $prop) {
+                        foreach ($prop->childNodes as $attr) {
+                            if ($attr->tagName === "d:resourcetype") {
+                                $file_attributes['type'] = $attr->childNodes[0] && $attr->childNodes[0]->tagName === "d:collection" ? "folder" : "file";
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return $file_attributes['type'];
+    }
+
+    public function isFolder($id)
+    {
+        return $this->getType($id) == 'folder';
+    }
+
+    public function isFile($id)
+    {
+        return $this->getType($id) == 'file';
     }
 
 }

@@ -11,7 +11,7 @@
 
         <? if (\Powerfolder\OAuth::isReady()) : ?>
             <?= MessageBox::info(_("Powerfolder ist verknüpft")) ?>
-        <? elseif(UserConfig::get($GLOBALS['user']->id)->POWERFOLDER_ENDPOINT) : ?>
+        <? elseif(Config::get()->POWERFOLDER_ENDPOINT || UserConfig::get($GLOBALS['user']->id)->POWERFOLDER_ENDPOINT) : ?>
             <div style="text-align: center;">
                 <?= \Studip\LinkButton::create(_("Powerfolder für Stud.IP freigeben"), PluginEngine::getURL($plugin, array(), "oauth/request_access_token")) ?>
             </div>

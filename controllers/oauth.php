@@ -14,12 +14,11 @@ class OauthController extends PluginController
         $client_id = Config::get()->POWERFOLDER_CLIENT_ID ?: UserConfig::get($GLOBALS['user']->id)->POWERFOLDER_CLIENT_ID;
         $redirect_uri = PluginEngine::getURL($this->plugin, array(), "oauth/receive_access_token", true);
 
-        $url = $powerfolder."index.php/apps/oauth2/authorize";
+        $url = $powerfolder."login";
 
         $_SESSION['oauth2state'] = md5(uniqid());
         $url .= "?state=".urlencode($_SESSION['oauth2state'])
                 . "&response_type=code"
-                . "&approval_prompt=auto"
                 . "&redirect_uri=".urlencode($redirect_uri)
                 . "&client_id=".urlencode($client_id);
 
