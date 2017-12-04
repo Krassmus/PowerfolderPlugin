@@ -77,7 +77,7 @@ class OAuth {
         );
 
         $r = curl_init();
-        curl_setopt($r, CURLOPT_URL, $powerfolder."index.php/apps/oauth2/api/v1/token");
+        curl_setopt($r, CURLOPT_URL, $powerfolder."oauth/token");
         curl_setopt($r, CURLOPT_POST, 1);
         curl_setopt($r, CURLOPT_HTTPHEADER, $header);
         curl_setopt($r, CURLOPT_RETURNTRANSFER, 1);
