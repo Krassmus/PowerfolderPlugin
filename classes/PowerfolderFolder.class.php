@@ -6,7 +6,7 @@ class PowerfolderFolder extends VirtualFolderType {
 
     public static function availableInRange($range_id_or_object, $user_id)
     {
-        return $range_id_or_object == 'PowerfolderPlugin';
+        return $range_id_or_object === 'PowerfolderPlugin';
     }
 
     public function isWritable($user_id)
@@ -16,7 +16,7 @@ class PowerfolderFolder extends VirtualFolderType {
 
     public function isEditable($user_id)
     {
-        return false;
+        return true;
     }
 
     public function isSubfolderAllowed($user_id)
@@ -42,7 +42,7 @@ class PowerfolderFolder extends VirtualFolderType {
 
     public function store()
     {
-        $old_id = $this->parent_id . '/' . $this->name;
+        $old_id = $this->parent_id . '/' . rawurlencode($this->name);
 
         if ($this->getId() != $old_id) {
 
@@ -94,7 +94,7 @@ class PowerfolderFolder extends VirtualFolderType {
     {
         $webdav = $this->getWebDavURL();
 
-        $file_ref_id = $this->id . (mb_strlen($this->id)?'/':'') .  $filedata['name'];
+        $file_ref_id = $this->id . (mb_strlen($this->id) ? '/' : '') . rawurlencode($filedata['name']);
 
         $header = array();
         $header[] = "Authorization: Bearer ".\Powerfolder\OAuth::getAccessToken();
@@ -123,11 +123,11 @@ class PowerfolderFolder extends VirtualFolderType {
         $webdav = $this->getWebDavURL();
 
         $tmp_parts = explode('/', $file_ref_id);
-        $destination = $webdav . $this->id . (mb_strlen($this->id)?'/':'') . end($tmp_parts);
+        $destination = $this->id . (mb_strlen($this->id) ? '/' : '') . end($tmp_parts);
 
         $header = array();
         $header[] = "Authorization: Bearer ".\Powerfolder\OAuth::getAccessToken();
-        $header[] = "Destination: ".$destination;
+        $header[] = "Destination: ". $webdav . $destination;
 
         $r = curl_init();
         curl_setopt($r, CURLOPT_CUSTOMREQUEST, "COPY");
@@ -140,7 +140,7 @@ class PowerfolderFolder extends VirtualFolderType {
         curl_close($r);
 
         $plugin = PluginManager::getInstance()->getPluginById($this->plugin_id);
-        return $plugin->getPreparedFile($file_ref_id);
+        return $plugin->getPreparedFile($destination);
     }
 
     public function moveFile($file_ref_id)
@@ -148,11 +148,11 @@ class PowerfolderFolder extends VirtualFolderType {
         $webdav = $this->getWebDavURL();
 
         $tmp_parts = explode('/', $file_ref_id);
-        $destination = $webdav . $this->id . (mb_strlen($this->id)?'/':'') . end($tmp_parts);
+        $destination = $this->id . (mb_strlen($this->id)?'/':'') . end($tmp_parts);
 
         $header = array();
         $header[] = "Authorization: Bearer ".\Powerfolder\OAuth::getAccessToken();
-        $header[] = "Destination: ".$destination;
+        $header[] = "Destination: ". $webdav . $destination;
 
         $r = curl_init();
         curl_setopt($r, CURLOPT_CUSTOMREQUEST, "MOVE");
@@ -165,21 +165,21 @@ class PowerfolderFolder extends VirtualFolderType {
         curl_close($r);
 
         $plugin = PluginManager::getInstance()->getPluginById($this->plugin_id);
-        return $plugin->getPreparedFile($file_ref_id);
+        return $plugin->getPreparedFile($destination);
     }
 
     public function editFile($file_ref_id, $name = null, $description = null,  $content_terms_of_use_id = null)
     {
-        if(!$name) {
+        if (!$name) {
             return false;
         }
 
         $webdav = $this->getWebDavURL();
-        $destination = $webdav . $this->id . (mb_strlen($this->id)?'/':'') . $name;
+        $destination = $this->id . (mb_strlen($this->id)?'/':'') . rawurlencode($name);
 
         $header = array();
         $header[] = "Authorization: Bearer ".\Powerfolder\OAuth::getAccessToken();
-        $header[] = "Destination: ".$destination;
+        $header[] = "Destination: ". $webdav . $destination;
 
         $r = curl_init();
         curl_setopt($r, CURLOPT_CUSTOMREQUEST, "MOVE");
@@ -192,19 +192,23 @@ class PowerfolderFolder extends VirtualFolderType {
         curl_close($r);
 
         $plugin = PluginManager::getInstance()->getPluginById($this->plugin_id);
-        return $plugin->getPreparedFile($file_ref_id);
+        return $plugin->getPreparedFile($destination);
     }
 
     public function createSubfolder(FolderType $foldertype)
     {
         $webdav = $this->getWebDavURL();
+
+        $tmp_parts = explode('/', $foldertype->getId());
+        $destination = $this->id . (mb_strlen($this->id)?'/':'') . end($tmp_parts);
+
         $header = array();
         $header[] = "Authorization: Bearer ".\Powerfolder\OAuth::getAccessToken();
 
         $r = curl_init();
 
         curl_setopt($r, CURLOPT_CUSTOMREQUEST, "MKCOL");
-        curl_setopt($r, CURLOPT_URL, $webdav . $foldertype->getId());
+        curl_setopt($r, CURLOPT_URL, $webdav . $destination);
         curl_setopt($r, CURLOPT_HTTPHEADER, ($header));
         curl_setopt($r, CURLOPT_RETURNTRANSFER, 1);
 
@@ -212,12 +216,13 @@ class PowerfolderFolder extends VirtualFolderType {
         $status = curl_getinfo($r, CURLINFO_HTTP_CODE);
         curl_close($r);
 
-        return (($status >= 200) && ($status < 300)) ? $foldertype : false;
+        $plugin = PluginManager::getInstance()->getPluginById($this->plugin_id);
+        return (($status >= 200) && ($status < 300)) ? $plugin->getFolder($destination) : false;
     }
 
     protected function getWebDavURL()
     {
-        $parts = parse_url(UserConfig::get($GLOBALS['user']->id)->POWERFOLDER_ENDPOINT);
+        $parts = parse_url(\Config::get()->POWERFOLDER_ENDPOINT ?: \UserConfig::get($GLOBALS['user']->id)->POWERFOLDER_ENDPOINT);
         $url = $parts['scheme']
             ."://"
             .$parts['host']
@@ -241,15 +246,25 @@ class PowerfolderFolder extends VirtualFolderType {
 
         $header = array();
         $header[] = "Authorization: Bearer ".\Powerfolder\OAuth::getAccessToken();
+        $header[] = "Depth: 1";
+        //$header[] = "Content-Type: text/xml";
 
         $r = curl_init();
         curl_setopt($r, CURLOPT_CUSTOMREQUEST, "PROPFIND");
-        curl_setopt($r, CURLOPT_URL, $webdav."/".$this->id);
+        curl_setopt($r, CURLOPT_URL, $webdav . $this->id);
         curl_setopt($r, CURLOPT_HTTPHEADER, ($header));
         curl_setopt($r, CURLOPT_RETURNTRANSFER, 1);
 
         $xml = curl_exec($r);
         curl_close($r);
+
+        if (!$xml) {
+            PageLayout::postError(_("Konnte keine Daten von Powerfolder bekommen."));
+            $this->subfolders = array();
+            $this->files = array();
+            $this->did_propfind = true;
+            return;
+        }
 
         $doc = new DOMDocument();
         $doc->loadXML($xml);
@@ -268,26 +283,35 @@ class PowerfolderFolder extends VirtualFolderType {
 
             foreach ($file->childNodes as $node) {
                 if ($node->tagName === "d:href") {
-                    $file_attributes['name'] = substr($node->nodeValue, strpos($node->nodeValue, $root) + strlen($root));
-                    $file_attributes['name'] = urldecode(array_pop(preg_split("/\//", $file_attributes['name'], 0, PREG_SPLIT_NO_EMPTY)));
-                    if (!$file_attributes['name']) {
+                    $path = substr($node->nodeValue, strpos($node->nodeValue, $root) + strlen($root));
+                    $path = preg_split("/\//", $path, 0, PREG_SPLIT_NO_EMPTY);
+                    $file_attributes['name'] = urldecode(array_pop($path));
+                    if (!trim($file_attributes['name'])) {
                         continue 2;
                     }
                 }
-                if ($node->tagName === "d:propstat") {
+                if (strtolower($node->tagName) === "d:propstat") {
                     foreach ($node->childNodes as $prop) {
-                        foreach ($prop->childNodes as $attr) {
-                            if ($attr->tagName === "d:resourcetype") {
-                                $file_attributes['type'] = $attr->childNodes[0] && $attr->childNodes[0]->tagName === "d:collection" ? "folder" : "file";
-                            }
-                            if ($attr->tagName === "d:getcontentlength") {
-                                $file_attributes['size'] = $attr->nodeValue;
-                            }
-                            if ($attr->tagName === "d:getcontenttype") {
-                                $file_attributes['contenttype'] = $attr->nodeValue;
-                            }
-                            if ($attr->tagName === "d:getlastmodified") {
-                                $file_attributes['chdate'] = strtotime($attr->nodeValue);
+                        if ($prop->childNodes) {
+                            foreach ($prop->childNodes as $attr) {
+                                if (strtolower($attr->tagName) === "d:resourcetype") {
+                                    $file_attributes['type'] = $attr->childNodes[0] && strtolower($attr->childNodes[0]->tagName) === "d:collection" ? "folder" : "file";
+                                }
+                                if (strtolower($attr->tagName) === "d:getcontentlength") {
+                                    $file_attributes['size'] = $attr->nodeValue;
+                                }
+                                if (strtolower($attr->tagName) === "d:getcontenttype") {
+                                    $file_attributes['contenttype'] = $attr->nodeValue;
+                                }
+                                if (strtolower($attr->tagName) === "d:creationdate") {
+                                    $file_attributes['chdate'] = strtotime($attr->nodeValue);
+                                }
+                                if (strtolower($attr->tagName) === "d:displayname") {
+                                    $file_attributes['name'] = $attr->nodeValue;
+                                }
+                                if (strtolower($attr->tagName) === "d:getlastmodified") {
+                                    $file_attributes['chdate'] = strtotime($attr->nodeValue);
+                                }
                             }
                         }
                     }
@@ -295,7 +319,7 @@ class PowerfolderFolder extends VirtualFolderType {
             }
             if ($file_attributes['type'] === "folder") {
                 $this->subfolders[] = new PowerfolderFolder(array(
-                    'id' => ($this->id ? $this->id."/" : "").$file_attributes['name'],
+                    'id' => ($this->id ? $this->id."/" : "") . rawurlencode($file_attributes['name']),
                     'name' => $file_attributes['name'],
                     'parent_id' => $this->id,
                     'range_type' => $this->plugin_id,
@@ -303,7 +327,7 @@ class PowerfolderFolder extends VirtualFolderType {
                 ), $this->plugin_id);
             } else {
                 $this->files[] = (object) array(
-                    'id' => ($this->id ? $this->id."/" : "").$file_attributes['name'],
+                    'id' => ($this->id ? $this->id."/" : "") . rawurlencode($file_attributes['name']),
                     'name' => $file_attributes['name'],
                     'size' => $file_attributes['size'],
                     'mime_type' => $file_attributes['contenttype'],

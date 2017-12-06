@@ -63,13 +63,13 @@ class OAuth {
 
         $header = array();
 
-        $header[] = "Authorization: Basic ".base64_encode($client_id . ":" .$client_secret);
+        //$header[] = "Authorization: Basic ".base64_encode($client_id . ":" .$client_secret);
         $header[] = "Accept: application/json";
+        $header[] = "Content-Type: application/json";
 
         $payload = array(
             'grant_type' => "refresh_token",
             'refresh_token' => \UserConfig::get($GLOBALS['user']->id)->POWERFOLDER_REFRESH_TOKEN,
-            'code' => \UserConfig::get($GLOBALS['user']->id)->POWERFOLDER_REFRESH_TOKEN,
             'client_id' => $client_id,
             'client_secret' => $client_secret,
             'format' => "json",
@@ -82,7 +82,7 @@ class OAuth {
         curl_setopt($r, CURLOPT_HTTPHEADER, $header);
         curl_setopt($r, CURLOPT_RETURNTRANSFER, 1);
 
-        curl_setopt($r, CURLOPT_POSTFIELDS, $payload);
+        curl_setopt($r, CURLOPT_POSTFIELDS, json_encode($payload));
 
         $json = curl_exec($r);
         curl_close($r);
@@ -100,12 +100,11 @@ class OAuth {
             $client_id = \Config::get()->POWERFOLDER_CLIENT_ID ?: \UserConfig::get($GLOBALS['user']->id)->POWERFOLDER_CLIENT_ID;
             $redirect_uri = \URLHelper::getURL("plugin.php/powerfolderplugin/oauth/receive_access_token", array(),  true);
 
-            $url = $powerfolder."index.php/apps/oauth2/authorize";
+            $url = $powerfolder."oauth/allow";
 
             $_SESSION['oauth2state'] = md5(uniqid());
             $url .= "?state=".urlencode($_SESSION['oauth2state'])
                 . "&response_type=code"
-                . "&approval_prompt=auto"
                 . "&redirect_uri=".urlencode($redirect_uri)
                 . "&client_id=".urlencode($client_id);
 
@@ -114,10 +113,14 @@ class OAuth {
         } elseif ($json['error']) {
             \PageLayout::postError(_("Authentifizierungsfehler:")." ".$json['error']);
         } else {
-            \PageLayout::postInfo("Access-Token wurde erfolgreich erneuert.");
+            if (\Studip\ENV === "development") {
+                \PageLayout::postInfo("Access-Token wurde erfolgreich erneuert.");
+            }
             $config = \UserConfig::get($GLOBALS['user']->id);
             $config->store("POWERFOLDER_ACCESS_TOKEN", $json['access_token']);
-            //$config->store("POWERFOLDER_REFRESH_TOKEN", $json['refresh_token']);
+            if ($json['refresh_token']) {
+                $config->store("POWERFOLDER_REFRESH_TOKEN", $json['refresh_token']);
+            }
             $config->store("POWERFOLDER_ACCESS_TOKEN_EXPIRES", time() + $json['expires_in']);
         }
     }

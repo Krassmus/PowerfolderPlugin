@@ -51,6 +51,7 @@ class OauthController extends PluginController
 
         $header = array();
         $header[] = "Accept: application/json";
+        $header[] = "Content-Type: application/json";
         //$header[] = "Authorization: Basic ".base64_encode($client_id . ":" .$client_secret);
 
         $r = curl_init();
