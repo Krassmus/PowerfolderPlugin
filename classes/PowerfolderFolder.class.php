@@ -282,11 +282,11 @@ class PowerfolderFolder extends VirtualFolderType {
             $file_attributes = array();
 
             foreach ($file->childNodes as $node) {
-                if ($node->tagName === "d:href") {
+                if (strtolower($node->tagName) === "d:href") {
                     $path = substr($node->nodeValue, strpos($node->nodeValue, $root) + strlen($root));
-                    $path = preg_split("/\//", $path, 0, PREG_SPLIT_NO_EMPTY);
-                    $file_attributes['name'] = urldecode(array_pop($path));
-                    if (!trim($file_attributes['name'])) {
+                    $path_array = preg_split("/\//", $path, 0, PREG_SPLIT_NO_EMPTY);
+                    $file_attributes['name'] = rawurldecode(array_pop($path_array));
+                    if (!trim($file_attributes['name']) || $path === $this->id) {
                         continue 2;
                     }
                 }
@@ -317,24 +317,26 @@ class PowerfolderFolder extends VirtualFolderType {
                     }
                 }
             }
-            if ($file_attributes['type'] === "folder") {
-                $this->subfolders[] = new PowerfolderFolder(array(
-                    'id' => ($this->id ? $this->id."/" : "") . rawurlencode($file_attributes['name']),
-                    'name' => $file_attributes['name'],
-                    'parent_id' => $this->id,
-                    'range_type' => $this->plugin_id,
-                    'range_id' => 'PowerfolderPlugin'
-                ), $this->plugin_id);
-            } else {
-                $this->files[] = (object) array(
-                    'id' => ($this->id ? $this->id."/" : "") . rawurlencode($file_attributes['name']),
-                    'name' => $file_attributes['name'],
-                    'size' => $file_attributes['size'],
-                    'mime_type' => $file_attributes['contenttype'],
-                    'description' => "",
-                    'chdate' => $file_attributes['chdate'],
-                    'download_url' => URLHelper::getURL( "plugins.php/powerfolderplugin/download/".($this->id ? $this->id."/" : "").$file_attributes['name'])
-                );
+            if (trim($file_attributes['name'])) {
+                if ($file_attributes['type'] === "folder") {
+                    $this->subfolders[] = new PowerfolderFolder(array(
+                        'id' => ($this->id ? $this->id."/" : "") . rawurlencode($file_attributes['name']),
+                        'name' => $file_attributes['name'],
+                        'parent_id' => $this->id,
+                        'range_type' => $this->plugin_id,
+                        'range_id' => 'PowerfolderPlugin'
+                    ), $this->plugin_id);
+                } else {
+                    $this->files[] = (object) array(
+                        'id' => ($this->id ? $this->id."/" : "") . rawurlencode($file_attributes['name']),
+                        'name' => $file_attributes['name'],
+                        'size' => $file_attributes['size'],
+                        'mime_type' => $file_attributes['contenttype'],
+                        'description' => "",
+                        'chdate' => $file_attributes['chdate'],
+                        'download_url' => URLHelper::getURL( "plugins.php/powerfolderplugin/download/".($this->id ? $this->id."/" : "").$file_attributes['name'])
+                    );
+                }
             }
         }
         $this->did_propfind = true;

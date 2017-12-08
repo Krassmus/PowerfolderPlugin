@@ -32,27 +32,18 @@ class PowerfolderPlugin extends StudIPPlugin implements FilesystemPlugin {
         $args = func_get_args();
         $file_id = implode("/", $args);
 
-        $parts = parse_url(UserConfig::get($GLOBALS['user']->id)->POWERFOLDER_ENDPOINT);
-        $url = $parts['scheme']
-            .urlencode(UserConfig::get($GLOBALS['user']->id)->POWERFOLDER_USERNAME)
-            .":"
-            .urlencode(UserConfig::get($GLOBALS['user']->id)->POWERFOLDER_PASSWORD)
-            ."@"
-            .$parts['host']
-            .($parts['port'] ? ":".$parts['port'] : "")
-            .($parts['path'] ?: "");
+        $url = Config::get()->POWERFOLDER_ENDPOINT ?: UserConfig::get($GLOBALS['user']->id)->POWERFOLDER_ENDPOINT;
         if ($url[strlen($url) - 1] !== "/") {
             $url .= "/";
         }
         $webdav = $url . "webdav/";
-
 
         $header = array();
         $header[] = "Authorization: Bearer ".\Powerfolder\OAuth::getAccessToken();
 
         $r = curl_init();
         curl_setopt($r, CURLOPT_CUSTOMREQUEST, "GET");
-        curl_setopt($r, CURLOPT_URL, $webdav."/".$file_id);
+        curl_setopt($r, CURLOPT_URL, $webdav . $file_id);
         curl_setopt($r, CURLOPT_HTTPHEADER, ($header));
         curl_setopt($r, CURLOPT_RETURNTRANSFER, 1);
 
