@@ -14,8 +14,12 @@ class PowerfolderPlugin extends StudIPPlugin implements FilesystemPlugin {
 
     public function getFolder($folder_id = null)
     {
+        if ($folder_id && !$this->isFolder($folder_id)) {
+            return null;
+        }
+
         $folder_path = explode("/", $folder_id);
-        $name = array_pop($folder_path);
+        $name = rawurldecode(array_pop($folder_path));
         $parent_folder_id = implode("/", $folder_path);
         $folder = new PowerfolderFolder(array(
             'id' => $folder_id,
@@ -30,7 +34,7 @@ class PowerfolderPlugin extends StudIPPlugin implements FilesystemPlugin {
     public function download_action()
     {
         $args = func_get_args();
-        $file_id = implode("/", $args);
+        $file_id = implode("/", array_map("rawurlencode", $args));
 
         $url = Config::get()->POWERFOLDER_ENDPOINT ?: UserConfig::get($GLOBALS['user']->id)->POWERFOLDER_ENDPOINT;
         if ($url[strlen($url) - 1] !== "/") {
@@ -59,8 +63,12 @@ class PowerfolderPlugin extends StudIPPlugin implements FilesystemPlugin {
 
     public function getPreparedFile($file_id, $with_blob = false)
     {
+        if (!$this->isFile($file_id)) {
+            return null;
+        }
+
         $folder_path = explode("/", $file_id);
-        $filename = array_pop($folder_path);
+        $filename = rawurldecode(array_pop($folder_path));
         $folder_id = implode("/", $folder_path);
         $name = array_pop($folder_path);
         $parent_folder_id = implode("/", $folder_path);
@@ -92,27 +100,18 @@ class PowerfolderPlugin extends StudIPPlugin implements FilesystemPlugin {
         $file->content_terms_of_use_id = 'UNDEF_LICENSE';
 
         if ($with_blob) {
-            $parts = parse_url(UserConfig::get($GLOBALS['user']->id)->POWERFOLDER_ENDPOINT);
-            $url = $parts['scheme']
-                .urlencode(UserConfig::get($GLOBALS['user']->id)->POWERFOLDER_USERNAME)
-                .":"
-                .urlencode(UserConfig::get($GLOBALS['user']->id)->POWERFOLDER_PASSWORD)
-                ."@"
-                .$parts['host']
-                .($parts['port'] ? ":".$parts['port'] : "")
-                .($parts['path'] ?: "");
+            $url = Config::get()->POWERFOLDER_ENDPOINT ?: UserConfig::get($GLOBALS['user']->id)->POWERFOLDER_ENDPOINT;
             if ($url[strlen($url) - 1] !== "/") {
                 $url .= "/";
             }
             $webdav = $url . "webdav/";
-
 
             $header = array();
             $header[] = "Authorization: Bearer ".\Powerfolder\OAuth::getAccessToken();
 
             $r = curl_init();
             curl_setopt($r, CURLOPT_CUSTOMREQUEST, "GET");
-            curl_setopt($r, CURLOPT_URL, $webdav."/".$file_id);
+            curl_setopt($r, CURLOPT_URL, $webdav . $file_id);
             curl_setopt($r, CURLOPT_HTTPHEADER, ($header));
             curl_setopt($r, CURLOPT_RETURNTRANSFER, 1);
 
@@ -162,22 +161,16 @@ class PowerfolderPlugin extends StudIPPlugin implements FilesystemPlugin {
 
     protected function getType($id)
     {
-        $parts = parse_url(UserConfig::get($GLOBALS['user']->id)->POWERFOLDER_ENDPOINT);
-        $url = $parts['scheme']
-            ."://"
-            .$parts['host']
-            .($parts['port'] ? ":".$parts['port'] : "")
-            .($parts['path'] ?: "");
+        $url = Config::get()->POWERFOLDER_ENDPOINT ?: UserConfig::get($GLOBALS['user']->id)->POWERFOLDER_ENDPOINT;
         if ($url[strlen($url) - 1] !== "/") {
             $url .= "/";
         }
         $webdav = $url . "webdav/";
-        $root = "remote.php/webdav/".$this->id;
         $header = array();
         $header[] = "Authorization: Bearer ".\Powerfolder\OAuth::getAccessToken();
         $r = curl_init();
         curl_setopt($r, CURLOPT_CUSTOMREQUEST, "PROPFIND");
-        curl_setopt($r, CURLOPT_URL, $webdav."/".$id);
+        curl_setopt($r, CURLOPT_URL, $webdav . $id);
         curl_setopt($r, CURLOPT_HTTPHEADER, ($header));
         curl_setopt($r, CURLOPT_RETURNTRANSFER, 1);
         $xml = curl_exec($r);
@@ -187,11 +180,11 @@ class PowerfolderPlugin extends StudIPPlugin implements FilesystemPlugin {
 
         foreach ($doc->getElementsByTagNameNS("DAV:","response") as $file) {
             foreach ($file->childNodes as $node) {
-                if ($node->tagName === "d:propstat") {
+                if (strtolower($node->tagName) === "d:propstat") {
                     foreach ($node->childNodes as $prop) {
                         foreach ($prop->childNodes as $attr) {
-                            if ($attr->tagName === "d:resourcetype") {
-                                $file_attributes['type'] = $attr->childNodes[0] && $attr->childNodes[0]->tagName === "d:collection" ? "folder" : "file";
+                            if (strtolower($attr->tagName) === "d:resourcetype") {
+                                $file_attributes['type'] = ($attr->childNodes[0] && strtolower($attr->childNodes[0]->tagName) === "d:collection") ? "folder" : "file";
                             }
                         }
                     }
