@@ -178,20 +178,44 @@ class PowerfolderPlugin extends StudIPPlugin implements FilesystemPlugin {
         $doc = new DOMDocument();
         $doc->loadXML($xml);
 
+        $href = "/webdav/" . $id;
+
         foreach ($doc->getElementsByTagNameNS("DAV:","response") as $file) {
-            foreach ($file->childNodes as $node) {
-                if (strtolower($node->tagName) === "d:propstat") {
-                    foreach ($node->childNodes as $prop) {
-                        foreach ($prop->childNodes as $attr) {
-                            if (strtolower($attr->tagName) === "d:resourcetype") {
-                                $file_attributes['type'] = ($attr->childNodes[0] && strtolower($attr->childNodes[0]->tagName) === "d:collection") ? "folder" : "file";
+            $is_current_id = false;
+            if ($file->childNodes) {
+                foreach ($file->childNodes as $node) {
+                    if (strtolower($node->tagName) === "d:href") {
+                        $node_href = $node->nodeValue;
+                        if ($node_href[strlen($node_href) - 1] === "/") {
+                            $node_href = substr($node_href, 0, -1);
+                        }
+                        if ($node_href === $href) {
+                            $is_current_id = true;
+                            break;
+                        }
+                    }
+                }
+            }
+            if ($is_current_id && $file->childNodes) {
+                foreach ($file->childNodes as $node) {
+                    if (strtolower($node->tagName) === "d:propstat") {
+                        if ($node->childNodes) {
+                            foreach ($node->childNodes as $prop) {
+                                if ($prop->childNodes) {
+                                    foreach ($prop->childNodes as $attr) {
+                                        if (strtolower($attr->tagName) === "d:resourcetype") {
+                                            return ($attr->childNodes[0] && strtolower($attr->childNodes[0]->tagName) === "d:collection")
+                                                ? "folder"
+                                                : "file";
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
                 }
             }
         }
-        return $file_attributes['type'];
     }
 
     public function isFolder($id)

@@ -327,11 +327,12 @@ class PowerfolderFolder extends VirtualFolderType {
                         'range_id' => 'PowerfolderPlugin'
                     ), $this->plugin_id);
                 } else {
+                    $content_type = $file_attributes['contenttype'] ?: get_mime_type($file_attributes['name']);
                     $this->files[] = (object) array(
                         'id' => ($this->id ? $this->id."/" : "") . rawurlencode($file_attributes['name']),
                         'name' => $file_attributes['name'],
                         'size' => $file_attributes['size'],
-                        'mime_type' => $file_attributes['contenttype'],
+                        'mime_type' => $content_type,
                         'description' => "",
                         'chdate' => $file_attributes['chdate'],
                         'download_url' => URLHelper::getURL( "plugins.php/powerfolderplugin/download/".($this->id ? $this->id."/" : "").$file_attributes['name'])
