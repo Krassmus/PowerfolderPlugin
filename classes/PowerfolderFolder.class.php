@@ -11,7 +11,7 @@ class PowerfolderFolder extends VirtualFolderType {
 
     public function isWritable($user_id)
     {
-        return true;
+        return (bool) $this->id;
     }
 
     public function isEditable($user_id)
@@ -199,8 +199,13 @@ class PowerfolderFolder extends VirtualFolderType {
     {
         $webdav = $this->getWebDavURL();
 
-        $tmp_parts = explode('/', $foldertype->getId());
-        $destination = $this->id . (mb_strlen($this->id)?'/':'') . end($tmp_parts);
+        if ($foldertype->getId()) {
+            $name = explode('/', $foldertype->getId());
+            $name = end($name);
+        } else {
+            $name = rawurlencode($foldertype->name);
+        }
+        $destination = $this->id . (mb_strlen($this->id)?'/':'') . $name;
 
         $header = array();
         $header[] = "Authorization: Bearer ".\Powerfolder\OAuth::getAccessToken();
