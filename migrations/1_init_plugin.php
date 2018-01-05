@@ -2,43 +2,14 @@
 
 class InitPlugin extends Migration {
     public function up() {
-        $configs = array("POWERFOLDER_ENDPOINT", "POWERFOLDER_CLIENT_ID", "POWERFOLDER_CLIENT_SECRET");
-        $statement = DBManager::get()->prepare(
-            "INSERT IGNORE INTO `config` (
-                `config_id` ,
-                `parent_id` ,
-                `field` ,
-                `value` ,
-                `is_default` ,
-                `type` ,
-                `range` ,
-                `section` ,
-                `position` ,
-                `mkdate` ,
-                `chdate` ,
-                `description` ,
-                `comment` ,
-                `message_template`
-            )
-            VALUES (
-                MD5(:field), 
-                '', 
-                :field, 
-                '', 
-                '0', 
-                'string', 
-                'global', 
-                'Powerfolder', 
-                '0', 
-                UNIX_TIMESTAMP(), 
-                UNIX_TIMESTAMP(), 
-                '', 
-                '', 
-                ''
-            );
-        ");
+        $configs = array("POWERFOLDER_ENDPOINT", "POWERFOLDER_CLIENT_ID", "POWERFOLDER_CLIENT_SECRET", "POWERFOLDER_ACTIVATED", "POWERFOLDER_ACCESS_TOKEN", "POWERFOLDER_ACCESS_TOKEN_EXPIRES", "POWERFOLDER_REFRESH_TOKEN");
         foreach ($configs as $config) {
-            $statement->execute(array('field' => $config));
+            Config::get()->create($config, array(
+                'value' => "",
+                'type' => $config === "OWNCLOUD_ACTIVATED" ? "boolean" : "string",
+                'range' => "user",
+                'section' => "Owncloud"
+            ));
         }
     }
 }

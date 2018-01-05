@@ -288,7 +288,7 @@ class PowerfolderFolder extends VirtualFolderType {
 
             foreach ($file->childNodes as $node) {
                 if (strtolower($node->tagName) === "d:href") {
-                    $path = substr($node->nodeValue, strpos($node->nodeValue, $root) + strlen($root));
+                    $path = substr($node->nodeValue, strpos(strtolower($node->nodeValue), strtolower($root)) + strlen($root));
                     $path_array = preg_split("/\//", $path, 0, PREG_SPLIT_NO_EMPTY);
                     $file_attributes['name'] = rawurldecode(array_pop($path_array));
                     if (!trim($file_attributes['name']) || $path === $this->id) {
@@ -325,7 +325,7 @@ class PowerfolderFolder extends VirtualFolderType {
             if (trim($file_attributes['name'])) {
                 if ($file_attributes['type'] === "folder") {
                     $this->subfolders[] = new PowerfolderFolder(array(
-                        'id' => ($this->id ? $this->id."/" : "") . rawurlencode($file_attributes['name']),
+                        'id' => ($this->id ? $this->id . "/" : "") . rawurlencode($file_attributes['name']),
                         'name' => $file_attributes['name'],
                         'parent_id' => $this->id,
                         'range_type' => $this->plugin_id,
@@ -334,7 +334,7 @@ class PowerfolderFolder extends VirtualFolderType {
                 } else {
                     $content_type = $file_attributes['contenttype'] ?: get_mime_type($file_attributes['name']);
                     $this->files[] = (object) array(
-                        'id' => ($this->id ? $this->id."/" : "") . rawurlencode($file_attributes['name']),
+                        'id' => ($this->id ? $this->id . "/" : "") . rawurlencode($file_attributes['name']),
                         'name' => $file_attributes['name'],
                         'size' => $file_attributes['size'],
                         'mime_type' => $content_type,
