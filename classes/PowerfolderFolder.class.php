@@ -99,7 +99,8 @@ class PowerfolderFolder extends VirtualFolderType {
         $header = array();
         $header[] = "Authorization: Bearer ".\Powerfolder\OAuth::getAccessToken();
 
-        $data = $filedata['tmp_name'];
+
+        $data = is_a($filedata, "File") ? $filedata->getPath() : $filedata['tmp_name'];
         $fh_res = fopen($data, 'r');
 
         $r = curl_init();
