@@ -26,7 +26,7 @@ class PowerfolderPlugin extends StudIPPlugin implements FilesystemPlugin {
             $path = substr($path, 1);
         }
         if (!$path && !$folder_id) {
-            PageLayout::postInfo(_("Bitte beachten Sie, dass in Powerfolder auf oberster Ebene keine Dateien liegen können."));
+            PageLayout::postInfo(_("Bitte beachten Sie, dass in Powerfolder auf oberster Ebene keine Dateien liegen kÃ¶nnen."));
         }
 
         $folder_path = explode("/", $folder_id);
