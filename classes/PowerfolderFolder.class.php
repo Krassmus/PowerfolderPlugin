@@ -94,6 +94,20 @@ class PowerfolderFolder extends VirtualFolderType {
     {
         $webdav = $this->getWebDavURL();
 
+        if ($this->fileExists($filedata['name'])) {
+            if (strpos($filedata['name'], ".")) {
+                $end = substr($filedata['name'], strpos($filedata['name'], "."));
+                $name_raw = substr($filedata['name'], 0, strpos($filedata['name'], "."));
+            } else {
+                $name_raw = $filedata['name'];
+            }
+            $i = 0;
+            do {
+                $i++;
+                $new_name = $name_raw."(".$i.").".$end;
+            } while ($this->fileExists($new_name));
+            $filedata['name'] = $new_name;
+        }
         $file_ref_id = $this->id . (mb_strlen($this->id) ? '/' : '') . rawurlencode($filedata['name']);
 
         $header = array();
@@ -141,7 +155,24 @@ class PowerfolderFolder extends VirtualFolderType {
         $webdav = $this->getWebDavURL();
 
         $tmp_parts = explode('/', $file_ref_id);
-        $destination = $this->id . (mb_strlen($this->id) ? '/' : '') . end($tmp_parts);
+
+        $name = end($tmp_parts);
+        if ($this->fileExists($name)) {
+            if (strpos($name, ".")) {
+                $end = substr($name, strpos($name, "."));
+                $name_raw = substr($name, 0, strpos($name, "."));
+            } else {
+                $name_raw = $name;
+            }
+            $i = 0;
+            do {
+                $i++;
+                $new_name = $name_raw."(".$i.").".$end;
+            } while ($this->fileExists($new_name));
+            $name = $new_name;
+        }
+
+        $destination = $this->id . (mb_strlen($this->id) ? '/' : '') . rawurlencode($name);
 
         $header = array();
         $header[] = "Authorization: Bearer ".\Powerfolder\OAuth::getAccessToken();
@@ -166,7 +197,23 @@ class PowerfolderFolder extends VirtualFolderType {
         $webdav = $this->getWebDavURL();
 
         $tmp_parts = explode('/', $file_ref_id);
-        $destination = $this->id . (mb_strlen($this->id)?'/':'') . end($tmp_parts);
+
+        $name = end($tmp_parts);
+        if ($this->fileExists($name)) {
+            if (strpos($name, ".")) {
+                $end = substr($name, strpos($name, "."));
+                $name_raw = substr($name, 0, strpos($name, "."));
+            } else {
+                $name_raw = $name;
+            }
+            $i = 0;
+            do {
+                $i++;
+                $new_name = $name_raw."(".$i.").".$end;
+            } while ($this->fileExists($new_name));
+            $name = $new_name;
+        }
+        $destination = $this->id . (mb_strlen($this->id)?'/':'') . rawurlencode($name);
 
         $header = array();
         $header[] = "Authorization: Bearer ".\Powerfolder\OAuth::getAccessToken();
@@ -193,6 +240,20 @@ class PowerfolderFolder extends VirtualFolderType {
         }
 
         $webdav = $this->getWebDavURL();
+        if ($this->fileExists(rawurlencode($name))) {
+            if (strpos($name, ".")) {
+                $end = substr($name, strpos($name, "."));
+                $name_raw = substr($name, 0, strpos($name, "."));
+            } else {
+                $name_raw = $name;
+            }
+            $i = 0;
+            do {
+                $i++;
+                $new_name = $name_raw."(".$i.").".$end;
+            } while ($this->fileExists(rawurlencode($new_name)));
+            $name = $new_name;
+        }
         $destination = $this->id . (mb_strlen($this->id)?'/':'') . rawurlencode($name);
 
         $header = array();
@@ -222,6 +283,15 @@ class PowerfolderFolder extends VirtualFolderType {
             $name = end($name);
         } else {
             $name = rawurlencode($foldertype->name);
+        }
+        if ($this->folderExists($name)) {
+            $name_raw = $name;
+            $i = 0;
+            do {
+                $i++;
+                $new_name = $name_raw."(".$i.")";
+            } while ($this->folderExists($new_name));
+            $name = $new_name;
         }
         $destination = $this->id . (mb_strlen($this->id)?'/':'') . $name;
 
@@ -358,6 +428,7 @@ class PowerfolderFolder extends VirtualFolderType {
                         'mime_type' => $content_type,
                         'description' => "",
                         'chdate' => $file_attributes['chdate'],
+                        'user_id' => $GLOBALS['user']->id,
                         'download_url' => URLHelper::getURL( "plugins.php/powerfolderplugin/download/".($this->id ? $this->id."/" : "").$file_attributes['name'])
                     );
                 }
@@ -406,6 +477,26 @@ class PowerfolderFolder extends VirtualFolderType {
         }
         $plugin = PluginEngine::getPlugin('PowerfolderPlugin');
         return $plugin->getFolder($this->parent_id);
+    }
+
+    public function fileExists($name)
+    {
+        foreach ($this->getFiles() as $file) {
+            if ($file->name === $name) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public function folderExists($name)
+    {
+        foreach ($this->getSubfolders() as $folder) {
+            if ($folder->name === $name) {
+                return true;
+            }
+        }
+        return false;
     }
 
 }
