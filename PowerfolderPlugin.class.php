@@ -17,6 +17,9 @@ class PowerfolderPlugin extends StudIPPlugin implements FilesystemPlugin {
         if ($folder_id && !$this->isFolder($folder_id)) {
             return null;
         }
+        if ($folder_id[0] === "/") {
+            $folder_id = substr($folder_id, 1);
+        }
 
         $path = substr($_SERVER['REQUEST_URI'], strpos($_SERVER['REQUEST_URI'], "dispatch.php/files/system/".$this->getPluginId()."/") + strlen("dispatch.php/files/system/".$this->getPluginId()));
         if (strpos($path, "?") !== false) {
