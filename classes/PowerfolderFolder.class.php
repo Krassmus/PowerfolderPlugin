@@ -146,7 +146,7 @@ class PowerfolderFolder extends VirtualFolderType {
         curl_close($r);
         fclose($fh_res);
 
-        $plugin = PluginManager::getInstance()->getPluginById($this->plugin_id);
+        $plugin = PluginManager::getInstance()->getPlugin("PowerfolderPlugin");
         return $plugin->getPreparedFile($file_ref_id);
     }
 
@@ -188,7 +188,7 @@ class PowerfolderFolder extends VirtualFolderType {
         $status = curl_getinfo($r, CURLINFO_HTTP_CODE);
         curl_close($r);
 
-        $plugin = PluginManager::getInstance()->getPluginById($this->plugin_id);
+        $plugin = PluginManager::getInstance()->getPlugin("PowerfolderPlugin");
         return $plugin->getPreparedFile($destination);
     }
 
@@ -229,7 +229,7 @@ class PowerfolderFolder extends VirtualFolderType {
         $status = curl_getinfo($r, CURLINFO_HTTP_CODE);
         curl_close($r);
 
-        $plugin = PluginManager::getInstance()->getPluginById($this->plugin_id);
+        $plugin = PluginManager::getInstance()->getPlugin("PowerfolderPlugin");
         return $plugin->getPreparedFile($destination);
     }
 
@@ -270,7 +270,7 @@ class PowerfolderFolder extends VirtualFolderType {
         $status = curl_getinfo($r, CURLINFO_HTTP_CODE);
         curl_close($r);
 
-        $plugin = PluginManager::getInstance()->getPluginById($this->plugin_id);
+        $plugin = PluginManager::getInstance()->getPlugin("PowerfolderPlugin");
         return $plugin->getPreparedFile($destination);
     }
 
@@ -309,7 +309,7 @@ class PowerfolderFolder extends VirtualFolderType {
         $status = curl_getinfo($r, CURLINFO_HTTP_CODE);
         curl_close($r);
 
-        $plugin = PluginManager::getInstance()->getPluginById($this->plugin_id);
+        $plugin = PluginManager::getInstance()->getPlugin("PowerfolderPlugin");
         return (($status >= 200) && ($status < 300)) ? $plugin->getFolder($destination) : false;
     }
 
