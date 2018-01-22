@@ -192,7 +192,7 @@ class PowerfolderPlugin extends StudIPPlugin implements FilesystemPlugin {
                         if ($node_href[strlen($node_href) - 1] === "/") {
                             $node_href = substr($node_href, 0, -1);
                         }
-                        $node_href = str_replace(array("(", ")", "'"), array("%28", "%29", "%27"), $node_href); //powerfolder only
+                        $node_href = str_replace(array("(", ")", "'", "$", "+", "!", "*", ","), array("%28", "%29", "%27", "%24", "%2B", "%21", "%2A", "%2C"), $node_href); //powerfolder only
                         if ($node_href === $href) {
                             $is_current_id = true;
                             break;
@@ -221,6 +221,7 @@ class PowerfolderPlugin extends StudIPPlugin implements FilesystemPlugin {
             }
         }
     }
+    //$-_.+!*'(),
 
     public function isFolder($id)
     {
