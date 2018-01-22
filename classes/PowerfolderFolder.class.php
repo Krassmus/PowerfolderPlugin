@@ -383,7 +383,11 @@ class PowerfolderFolder extends VirtualFolderType {
                     if ($nodeValue[0] === "/") {
                         $nodeValue = substr($nodeValue, 1);
                     }
-                    $path = substr($nodeValue, strpos(strtolower($nodeValue), strtolower($root)) + strlen($root));
+                    if (strpos(rawurldecode($nodeValue), rawurldecode($root)) !== false) {
+                        $path = substr($nodeValue, strpos(rawurldecode($nodeValue), rawurldecode($root)) + strlen($root));
+                    } else {
+                        $path = null;
+                    }
                     $path_array = preg_split("/\//", $path, 0, PREG_SPLIT_NO_EMPTY);
                     $file_attributes['name'] = rawurldecode(array_pop($path_array));
                     if (!trim($file_attributes['name']) || ($path === $this->id) || !$path) {
