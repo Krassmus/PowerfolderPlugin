@@ -440,12 +440,64 @@ class PowerfolderFolder extends VirtualFolderType {
                         'description' => "",
                         'chdate' => $file_attributes['chdate'],
                         'user_id' => $GLOBALS['user']->id,
-                        'download_url' => URLHelper::getURL( "plugins.php/powerfolderplugin/download/".($this->id ? $this->id."/" : "").$file_attributes['name'])
+                        'download_url' => URLHelper::getURL( "plugins.php/powerfolderplugin/download/".($this->id ? $this->id."/" : "").rawurlencode($file_attributes['name']))
                     );
                 }
             }
         }
         $this->did_propfind = true;
+    }
+
+    static public function normalizeURI($uri, $stripslash = true) {
+        $components = parse_url($uri);
+        $normalized = "";
+        if ($components['scheme']) {
+            $normalized .= $components['scheme'] . ":";
+        }
+        if ($components['host']) {
+            $normalized .= "//";
+            if ($components['user']) {
+                $normalized .= rawurlencode(urldecode($components['user']));
+                if ($components['pass']) {
+                    $normalized .= ":".rawurlencode(urldecode($components['pass']));
+                }
+                $normalized .= "@";
+            }
+            $normalized .= $components['host'];
+            if ($components['port']) {
+                $normalized .= ":".$components['port'];
+            }
+        }
+        if ($components['path']) {
+            if ($stripslash && (substr($components['path'], -1)) === "/") {
+                $components['path'] = substr($components['path'], 0, -1);
+            }
+            if ($components['path'] && $normalized) {
+                $normalized .= "/";
+            }
+            if ($stripslash) {
+                $path = preg_split("/\//", $components['path'], PREG_SPLIT_NO_EMPTY);
+            } else {
+                $path = explode("/", $components['path']);
+            }
+            $path = array_map("urldecode", $path);
+            $path = array_map("rawurlencode", $path);
+            $normalized .= implode("/", $path);
+        }
+        if ($components['query']) {
+            $query = explode("&", $components['query']);
+            foreach ($query as $i => $c) {
+                $c = explode("=", $c);
+                $c[1] = rawurlencode(urldecode($c[1]));
+                $c = implode("=", $c);
+                $query[$i] = $c;
+            }
+            $normalized .= "?".implode("&", $query);
+        }
+        if ($components['fragment']) {
+            $normalized .= "#".urlencode(urldecode($components['fragment']));
+        }
+        return $normalized;
     }
 
     public function getFiles()
