@@ -19,7 +19,7 @@ class OauthController extends PluginController
         $_SESSION['oauth2state'] = md5(uniqid());
         $url .= "?state=".urlencode($_SESSION['oauth2state'])
                 . "&response_type=code"
-                . "&redirect_uri=".urlencode($redirect_uri)
+                . "&redirect_uri=".rawurlencode($redirect_uri)
                 . "&client_id=".urlencode($client_id);
 
         header("Location: ".$url);

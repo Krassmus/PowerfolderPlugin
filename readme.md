@@ -8,13 +8,13 @@ Mit diesem Plugin kann man ab der Stud.IP-Version 4.0 ein Powerfolder als persön
 1. Das Plugin wird ganz normal in Stud.IP per Drag&Drop installiert. 
 2. Powerfolder muss mindestens in Version 11.5 Service Pack 5 installiert sein, damit der OAuth Prozess funktioniert. 
 3. Es muss in Powerfolder ein Client angelegt werden. Siehe https://wiki.powerfolder.com/display/PFS/OAuth2+Implementation#OAuth2Implementation-Provideclient-IDandsecret
-4. Jetzt hat man einen OAuth2-Client erstellt und kopiert Client-ID und das Secret. Wichtig ist dabei, dass man die korrekte Redirect-URI angibt. Powerfolder überprüft diese URI penibel. Sie sollte in etwa lauten `https://meinstud.ip/plugins.php/powerfolderplugin/oauth/receive_access_token`. Auch sollte HTTPS aktiv sein.
+4. Jetzt hat man einen OAuth2-Client erstellt und kopiert Client-ID und das Secret. Auf beiden Servern muss HTTPS aktiv sein.
 
 ## Credentials übertragen 
 
-1. Melde Dich im Stud.IP als Root an und gehe unter Admin -> System -> Konfiguration -> Powerfolder.
-2. Trage die oben gewonnene Client-ID beim Parameter `POWERFOLDER_CLIENT_ID` ein.
-3. Trage das oben gewonnene Secret beim Parameter `POWERFOLDER_CLIENT_SECRET` ein.
+1. Melden Sie sich im Stud.IP als Root an und gehen Sie unter Admin -> System -> Konfiguration -> Powerfolder.
+2. Tragen Sie die oben gewonnene Client-ID beim Parameter `POWERFOLDER_CLIENT_ID` ein.
+3. Tragen Sie das oben gewonnene Secret beim Parameter `POWERFOLDER_CLIENT_SECRET` ein.
 
 ## Powerfolder im Dateibereich einbinden 
 
