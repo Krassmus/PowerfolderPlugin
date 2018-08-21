@@ -315,7 +315,7 @@ class PowerfolderFolder extends VirtualFolderType {
 
     protected function getWebDavURL()
     {
-        $parts = parse_url(\Config::get()->POWERFOLDER_ENDPOINT ?: \UserConfig::get($GLOBALS['user']->id)->POWERFOLDER_ENDPOINT);
+        $parts = parse_url(\Config::get()->POWERFOLDER_ENDPOINT ?: \UserConfig::get($GLOBALS['user']->id)->POWERFOLDER_ENDPOINT_USER);
         $url = $parts['scheme']
             ."://"
             .$parts['host']

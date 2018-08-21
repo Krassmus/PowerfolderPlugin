@@ -6,12 +6,12 @@ class OauthController extends PluginController
     {
         URLHelper::setBaseURL($GLOBALS['ABSOLUTE_URI_STUDIP']);
         //Muss den Nutzer weiterleiten auf den Server, wo der Nutzer die App freischaltet
-        $powerfolder = Config::get()->POWERFOLDER_ENDPOINT ?: UserConfig::get($GLOBALS['user']->id)->POWERFOLDER_ENDPOINT;
+        $powerfolder = Config::get()->POWERFOLDER_ENDPOINT ?: UserConfig::get($GLOBALS['user']->id)->POWERFOLDER_ENDPOINT_USER;
         if ($powerfolder[strlen($powerfolder) - 1] !== "/") {
             $powerfolder .= "/";
         }
         URLHelper::setBaseURL($GLOBALS['ABSOLUTE_URI_STUDIP']);
-        $client_id = Config::get()->POWERFOLDER_CLIENT_ID ?: UserConfig::get($GLOBALS['user']->id)->POWERFOLDER_CLIENT_ID;
+        $client_id = Config::get()->POWERFOLDER_CLIENT_ID ?: UserConfig::get($GLOBALS['user']->id)->POWERFOLDER_CLIENT_ID_USER;
         $redirect_uri = PluginEngine::getURL($this->plugin, array(), "oauth/receive_access_token", true);
 
         $url = $powerfolder."oauth/allow";
@@ -29,7 +29,7 @@ class OauthController extends PluginController
     public function receive_access_token_action()
     {
         //Save the access token and refresh-token
-        $powerfolder = Config::get()->POWERFOLDER_ENDPOINT ?: UserConfig::get($GLOBALS['user']->id)->POWERFOLDER_ENDPOINT;
+        $powerfolder = Config::get()->POWERFOLDER_ENDPOINT ?: UserConfig::get($GLOBALS['user']->id)->POWERFOLDER_ENDPOINT_USER;
         if ($powerfolder[strlen($powerfolder) - 1] !== "/") {
             $powerfolder .= "/";
         }
@@ -39,8 +39,8 @@ class OauthController extends PluginController
         }
 
 
-        $client_id  = \Config::get()->POWERFOLDER_CLIENT_ID ?: \UserConfig::get($GLOBALS['user']->id)->POWERFOLDER_CLIENT_ID; // The client ID assigned to you by the provider
-        $client_secret = \Config::get()->POWERFOLDER_CLIENT_SECRET ?: \UserConfig::get($GLOBALS['user']->id)->POWERFOLDER_CLIENT_SECRET; // The client password assigned to you by the provider
+        $client_id  = \Config::get()->POWERFOLDER_CLIENT_ID ?: \UserConfig::get($GLOBALS['user']->id)->POWERFOLDER_CLIENT_ID_USER; // The client ID assigned to you by the provider
+        $client_secret = \Config::get()->POWERFOLDER_CLIENT_SECRET ?: \UserConfig::get($GLOBALS['user']->id)->POWERFOLDER_CLIENT_SECRET_USER; // The client password assigned to you by the provider
 
         $payload = array(
             'grant_type' => "authorization_code",

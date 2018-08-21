@@ -11,7 +11,7 @@
 
         <? if (\Powerfolder\OAuth::isReady()) : ?>
             <?= MessageBox::info(_("Powerfolder ist verknüpft")) ?>
-        <? elseif(Config::get()->POWERFOLDER_ENDPOINT || UserConfig::get($GLOBALS['user']->id)->POWERFOLDER_ENDPOINT) : ?>
+        <? elseif(Config::get()->POWERFOLDER_ENDPOINT || UserConfig::get($GLOBALS['user']->id)->POWERFOLDER_ENDPOINT_USER) : ?>
             <div style="text-align: center;">
                 <?= \Studip\LinkButton::create(_("Powerfolder für Stud.IP freigeben"), PluginEngine::getURL($plugin, array(), "oauth/request_access_token")) ?>
             </div>
@@ -20,21 +20,21 @@
         <? if (!Config::get()->POWERFOLDER_ENDPOINT) : ?>
             <label>
                 <?= _("Adresse des Powerfolders") ?>
-                <input type="text" name="powerfolder[endpoint]" value="<?= htmlReady(UserConfig::get($GLOBALS['user']->id)->POWERFOLDER_ENDPOINT) ?>" placeholder="<?= "z.B. https://myserver.tdl/powerfolder" ?>">
+                <input type="text" name="powerfolder[endpoint]" value="<?= htmlReady(UserConfig::get($GLOBALS['user']->id)->POWERFOLDER_ENDPOINT_USER) ?>" placeholder="<?= "z.B. https://myserver.tdl/powerfolder" ?>">
             </label>
         <? endif ?>
 
         <? if (!Config::get()->POWERFOLDER_CLIENT_ID) : ?>
             <label>
                 <?= _("App-ID") ?>
-                <input type="text" name="powerfolder[client_id]" value="<?= htmlReady(UserConfig::get($GLOBALS['user']->id)->POWERFOLDER_CLIENT_ID) ?>">
+                <input type="text" name="powerfolder[client_id]" value="<?= htmlReady(UserConfig::get($GLOBALS['user']->id)->POWERFOLDER_CLIENT_ID_USER) ?>">
             </label>
         <? endif ?>
 
         <? if (!Config::get()->POWERFOLDER_CLIENT_SECRET) : ?>
             <label>
                 <?= _("Secret") ?>
-                <input type="text" name="powerfolder[client_secret]" value="<?= htmlReady(UserConfig::get($GLOBALS['user']->id)->POWERFOLDER_CLIENT_SECRET) ?>">
+                <input type="text" name="powerfolder[client_secret]" value="<?= htmlReady(UserConfig::get($GLOBALS['user']->id)->POWERFOLDER_CLIENT_SECRET_USER) ?>">
             </label>
 
             <label>

@@ -39,7 +39,7 @@ class PowerfolderPlugin extends StudIPPlugin implements FilesystemPlugin {
         $args = func_get_args();
         $file_id = implode("/", array_map("rawurlencode", $args));
 
-        $url = Config::get()->POWERFOLDER_ENDPOINT ?: UserConfig::get($GLOBALS['user']->id)->POWERFOLDER_ENDPOINT;
+        $url = Config::get()->POWERFOLDER_ENDPOINT ?: UserConfig::get($GLOBALS['user']->id)->POWERFOLDER_ENDPOINT_USER;
         if ($url[strlen($url) - 1] !== "/") {
             $url .= "/";
         }
@@ -103,7 +103,7 @@ class PowerfolderPlugin extends StudIPPlugin implements FilesystemPlugin {
         $file->content_terms_of_use_id = 'UNDEF_LICENSE';
 
         if ($with_blob) {
-            $url = Config::get()->POWERFOLDER_ENDPOINT ?: UserConfig::get($GLOBALS['user']->id)->POWERFOLDER_ENDPOINT;
+            $url = Config::get()->POWERFOLDER_ENDPOINT ?: UserConfig::get($GLOBALS['user']->id)->POWERFOLDER_ENDPOINT_USER;
             if ($url[strlen($url) - 1] !== "/") {
                 $url .= "/";
             }
@@ -164,7 +164,7 @@ class PowerfolderPlugin extends StudIPPlugin implements FilesystemPlugin {
 
     protected function getType($id)
     {
-        $url = Config::get()->POWERFOLDER_ENDPOINT ?: UserConfig::get($GLOBALS['user']->id)->POWERFOLDER_ENDPOINT;
+        $url = Config::get()->POWERFOLDER_ENDPOINT ?: UserConfig::get($GLOBALS['user']->id)->POWERFOLDER_ENDPOINT_USER;
         if ($url[strlen($url) - 1] !== "/") {
             $url .= "/";
         }
