@@ -124,4 +124,10 @@ class OAuth {
             $config->store("POWERFOLDER_ACCESS_TOKEN_EXPIRES", time() + $json['expires_in']);
         }
     }
+
+    static public function removeAccessToken()
+    {
+        \UserConfig::get($GLOBALS['user']->id)->delete("POWERFOLDER_ACCESS_TOKEN");
+        \UserConfig::get($GLOBALS['user']->id)->delete("POWERFOLDER_REFRESH_TOKEN");
+    }
 }

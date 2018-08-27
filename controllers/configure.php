@@ -15,11 +15,19 @@ class ConfigureController extends PluginController
             $data = Request::getArray("powerfolder");
             foreach ($data as $key => $value) {
                 $config->store("POWERFOLDER_".strtoupper($key), $value);
+                $this->redirect(URLHelper::getURL("dispatch.php/files"));
             }
             if (!$data['activated']) {
                 $config->store("POWERFOLDER_ACTIVATED", 0);
+            } else {
+                if (\Powerfolder\OAuth::hasAccessToken()) {
+                    $this->redirect(URLHelper::getURL("dispatch.php/files/system/" . $this->plugin->getPluginId()));
+                } else {
+                    $this->redirect("oauth/request_access_token");
+                }
             }
             PageLayout::postMessage(MessageBox::success(_("Konfiguration gespeichert.")));
+            return;
         }
     }
 }

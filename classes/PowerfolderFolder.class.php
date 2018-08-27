@@ -349,6 +349,11 @@ class PowerfolderFolder extends VirtualFolderType {
         curl_setopt($r, CURLOPT_RETURNTRANSFER, 1);
 
         $xml = curl_exec($r);
+        $info = curl_getinfo($r);
+        if ($info['http_code'] === 401 && \Powerfolder\OAuth::hasAccessToken()) {
+            \Powerfolder\OAuth::removeAccessToken();
+            PageLayout::postError(_("Zugangsberechtigung zu Powerfolder abgelaufen. Erneuern Sie die Verbindung zu Powerfolder."));
+        }
         curl_close($r);
 
         if (!$xml) {

@@ -1,6 +1,5 @@
 <form action="<?= PluginEngine::getLink($plugin, array(), "configure/myarea") ?>"
       method="post"
-      data-dialog
       class="default powerfolder"
       autocomplete="off">
 
@@ -11,7 +10,7 @@
 
         <? if (\Powerfolder\OAuth::isReady()) : ?>
             <?= MessageBox::info(_("Powerfolder ist verknüpft")) ?>
-        <? elseif(Config::get()->POWERFOLDER_ENDPOINT || UserConfig::get($GLOBALS['user']->id)->POWERFOLDER_ENDPOINT_USER) : ?>
+        <? elseif ((Config::get()->POWERFOLDER_ENDPOINT || UserConfig::get($GLOBALS['user']->id)->POWERFOLDER_ENDPOINT_USER) && UserConfig::get($GLOBALS['user']->id)->POWERFOLDER_ACTIVATED) : ?>
             <div style="text-align: center;">
                 <?= \Studip\LinkButton::create(_("Powerfolder für Stud.IP freigeben"), PluginEngine::getURL($plugin, array(), "oauth/request_access_token")) ?>
             </div>
