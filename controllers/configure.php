@@ -4,10 +4,18 @@ class ConfigureController extends PluginController
 {
     public function myarea_action()
     {
-        if (Navigation::hasItem("/profile/files/PowerfolderPlugin")) {
-            Navigation::activateItem('/profile/files/PowerfolderPlugin');
-        } else {
-            Navigation::activateItem('/profile/files');
+        if (Navigation::hasItem("/files_dashboard/files")) {
+            if (Navigation::hasItem('/files_dashboard/files/PowerfolderPlugin')) {
+                Navigation::activateItem('/files_dashboard/files/PowerfolderPlugin');
+            } else {
+                Navigation::activateItem('/files_dashboard/files');
+            }
+        } elseif (Navigation::hasItem("/profile/files")) {
+            if (Navigation::hasItem("/profile/files/PowerfolderPlugin")) {
+                Navigation::activateItem('/profile/files/PowerfolderPlugin');
+            } else {
+                Navigation::activateItem('/profile/files');
+            }
         }
         PageLayout::setTitle(_("Powerfolder"));
         if (Request::isPost()) {
