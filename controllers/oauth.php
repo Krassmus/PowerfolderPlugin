@@ -41,12 +41,16 @@ class OauthController extends PluginController
 
         $client_id  = \Config::get()->POWERFOLDER_CLIENT_ID ?: \UserConfig::get($GLOBALS['user']->id)->POWERFOLDER_CLIENT_ID_USER; // The client ID assigned to you by the provider
         $client_secret = \Config::get()->POWERFOLDER_CLIENT_SECRET ?: \UserConfig::get($GLOBALS['user']->id)->POWERFOLDER_CLIENT_SECRET_USER; // The client password assigned to you by the provider
+        URLHelper::setBaseURL($GLOBALS['ABSOLUTE_URI_STUDIP']);
+        $redirect_uri = PluginEngine::getURL($this->plugin, array(), "oauth/receive_access_token", true);
 
         $payload = array(
             'grant_type' => "authorization_code",
             'code' => Request::get("code"),
+            'redirect_uri' => $redirect_uri,
             'client_id' => $client_id,
-            'client_secret' => $client_secret
+            'client_secret' => $client_secret,
+            'format' => "json"
         );
 
         $header = array();
@@ -59,6 +63,11 @@ class OauthController extends PluginController
         curl_setopt($r, CURLOPT_POST, 1);
         curl_setopt($r, CURLOPT_HTTPHEADER, $header);
         curl_setopt($r, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt($r, CURLOPT_SSL_VERIFYPEER, (bool) Config::get()->POWERFOLDER_SSL_VERIFYPEER);
+        curl_setopt($r, CURLOPT_SSL_VERIFYHOST, (bool) Config::get()->POWERFOLDER_SSL_VERIFYPEER);
+        if ($GLOBALS['POWERFOLDER_VERBOSE']) {
+            curl_setopt($r, CURLOPT_VERBOSE, true);
+        }
 
         curl_setopt($r, CURLOPT_POSTFIELDS, json_encode($payload));
 

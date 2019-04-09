@@ -22,11 +22,11 @@ class ConfigureController extends PluginController
             $config = UserConfig::get($GLOBALS['user']->id);
             $data = Request::getArray("powerfolder");
             foreach ($data as $key => $value) {
-                $config->store("POWERFOLDER_".strtoupper($key), $value);
-                $this->redirect(URLHelper::getURL("dispatch.php/files"));
+                $config->store("POWERFOLDER_" . strtoupper($key) . ($key === "activated" ? "" : "_USER"), $value);
             }
             if (!$data['activated']) {
                 $config->store("POWERFOLDER_ACTIVATED", 0);
+                $this->redirect(URLHelper::getURL("dispatch.php/files"));
             } else {
                 if (\Powerfolder\OAuth::hasAccessToken()) {
                     $this->redirect(URLHelper::getURL("dispatch.php/files/system/" . $this->plugin->getPluginId()));
