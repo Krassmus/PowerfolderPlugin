@@ -1,7 +1,8 @@
 <?php
 
 require_once __DIR__."/classes/OAuth.class.php";
-require_once __DIR__."/classes/PowerfolderFolder.class.php";
+require_once __DIR__."/classes/PowerfolderFile.php";
+require_once __DIR__."/classes/PowerfolderFolder.php";
 
 class PowerfolderPlugin extends StudIPPlugin implements FilesystemPlugin {
 
@@ -14,6 +15,7 @@ class PowerfolderPlugin extends StudIPPlugin implements FilesystemPlugin {
 
     public function getFolder($folder_id = null)
     {
+        Navigation::activateItem('/files/my_files');
         if ($folder_id[0] === "/") {
             $folder_id = substr($folder_id, 1);
         }
@@ -46,13 +48,18 @@ class PowerfolderPlugin extends StudIPPlugin implements FilesystemPlugin {
         $webdav = $url . "webdav/";
 
         $header = array();
-        $header[] = "Authorization: Bearer ".\Powerfolder\OAuth::getAccessToken();
+        $header[] = PowerfolderFolder::getAuthHeader();
 
         $r = curl_init();
         curl_setopt($r, CURLOPT_CUSTOMREQUEST, "GET");
         curl_setopt($r, CURLOPT_URL, $webdav . $file_id);
         curl_setopt($r, CURLOPT_HTTPHEADER, ($header));
         curl_setopt($r, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt($r, CURLOPT_SSL_VERIFYPEER, (bool) Config::get()->POWERFOLDER_SSL_VERIFYPEER);
+        curl_setopt($r, CURLOPT_SSL_VERIFYHOST, (bool) Config::get()->POWERFOLDER_SSL_VERIFYPEER);
+        if ($GLOBALS['POWERFOLDER_VERBOSE']) {
+            curl_setopt($r, CURLOPT_VERBOSE, true);
+        }
 
         $content = curl_exec($r);
         $info = curl_getinfo($r);
@@ -71,65 +78,32 @@ class PowerfolderPlugin extends StudIPPlugin implements FilesystemPlugin {
         }
 
         $folder_path = explode("/", $file_id);
-        $filename = rawurldecode(array_pop($folder_path));
-        $folder_id = implode("/", $folder_path);
+        $folder_path = array_map("rawurldecode", $folder_path);
+        $filename = array_pop($folder_path);
+        $folder_id = implode("/", array_map("rawurlencode", $folder_path));
         $name = array_pop($folder_path);
-        $parent_folder_id = implode("/", $folder_path);
+        $parent_folder_id = implode("/", array_map("rawurlencode", $folder_path));
 
-        $folder = new PowerfolderFolder(array(
+        $data = [
             'id' => $folder_id,
             'name' => $name,
             'parent_id' => $parent_folder_id,
             'range_type' => $this->getPluginId(),
             'range_id' => $this->getPluginName()
-        ), $this->getPluginId());
+        ];
 
-        foreach ($folder->getFiles() as $file_info) {
-            if ($file_info->name === $filename) {
-                $info = $file_info;
-                break;
+        $folder = new PowerfolderFolder(
+            $data,
+            $this->getPluginId()
+        );
+
+        foreach ($folder->getFiles() as $file) {
+            if ($file->getFilename() === $filename) {
+                return $file;
             }
         }
 
-        $file = new FileRef();
-        $file->id           = $file_id;
-        $file->foldertype   = $folder;
-        $file->name         = $filename;
-        $file->size         = $info->size;
-        $file->mime_type    = $info->mime_type;
-        $file->download_url = $info->download_url;
-        $file->mkdate       = $info->chdate;
-        $file->chdate       = $info->chdate;
-        $file->content_terms_of_use_id = 'UNDEF_LICENSE';
-
-        if ($with_blob) {
-            $url = Config::get()->POWERFOLDER_ENDPOINT ?: UserConfig::get($GLOBALS['user']->id)->POWERFOLDER_ENDPOINT_USER;
-            if ($url[strlen($url) - 1] !== "/") {
-                $url .= "/";
-            }
-            $webdav = $url . "webdav/";
-
-            $header = array();
-            $header[] = "Authorization: Bearer ".\Powerfolder\OAuth::getAccessToken();
-
-            $r = curl_init();
-            curl_setopt($r, CURLOPT_CUSTOMREQUEST, "GET");
-            curl_setopt($r, CURLOPT_URL, $webdav . $file_id);
-            curl_setopt($r, CURLOPT_HTTPHEADER, ($header));
-            curl_setopt($r, CURLOPT_RETURNTRANSFER, 1);
-
-            $content = curl_exec($r);
-            $info = curl_getinfo($r);
-            curl_close($r);
-            $path = $GLOBALS['TMP_PATH']."/".md5(uniqid());
-            file_put_contents(
-                $path,
-                $content
-            );
-            $file->path_to_blob = $path;
-        }
-
-        return $file;
+        return null;
     }
 
     public function filesystemConfigurationURL()
@@ -170,12 +144,17 @@ class PowerfolderPlugin extends StudIPPlugin implements FilesystemPlugin {
         }
         $webdav = $url . "webdav/";
         $header = array();
-        $header[] = "Authorization: Bearer ".\Powerfolder\OAuth::getAccessToken();
+        $header[] = PowerfolderFolder::getAuthHeader();
         $r = curl_init();
         curl_setopt($r, CURLOPT_CUSTOMREQUEST, "PROPFIND");
         curl_setopt($r, CURLOPT_URL, $webdav . $id);
         curl_setopt($r, CURLOPT_HTTPHEADER, ($header));
         curl_setopt($r, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt($r, CURLOPT_SSL_VERIFYPEER, (bool) Config::get()->POWERFOLDER_SSL_VERIFYPEER);
+        curl_setopt($r, CURLOPT_SSL_VERIFYHOST, (bool) Config::get()->POWERFOLDER_SSL_VERIFYPEER);
+        if ($GLOBALS['POWERFOLDER_VERBOSE']) {
+            curl_setopt($r, CURLOPT_VERBOSE, true);
+        }
         $xml = curl_exec($r);
         curl_close($r);
         $doc = new DOMDocument();

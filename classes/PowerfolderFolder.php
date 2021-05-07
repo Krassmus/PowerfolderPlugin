@@ -48,7 +48,7 @@ class PowerfolderFolder extends VirtualFolderType {
 
             $webdav = $this->getWebDavURL();
             $header = array();
-            $header[] = "Authorization: Bearer ".\Powerfolder\OAuth::getAccessToken();
+            $header[] = PowerfolderFolder::getAuthHeader();
             $header[] = "Destination: ". $webdav . $this->id;
 
             $r = curl_init();
@@ -56,6 +56,11 @@ class PowerfolderFolder extends VirtualFolderType {
             curl_setopt($r, CURLOPT_URL, $webdav . $old_id);
             curl_setopt($r, CURLOPT_HTTPHEADER, ($header));
             curl_setopt($r, CURLOPT_RETURNTRANSFER, 1);
+            curl_setopt($r, CURLOPT_SSL_VERIFYPEER, (bool) Config::get()->POWERFOLDER_SSL_VERIFYPEER);
+            curl_setopt($r, CURLOPT_SSL_VERIFYHOST, (bool) Config::get()->POWERFOLDER_SSL_VERIFYPEER);
+            if ($GLOBALS['POWERFOLDER_VERBOSE']) {
+                curl_setopt($r, CURLOPT_VERBOSE, true);
+            }
             curl_exec($r);
             $status = curl_getinfo($r, CURLINFO_HTTP_CODE);
             curl_close($r);
@@ -76,13 +81,18 @@ class PowerfolderFolder extends VirtualFolderType {
         $webdav = $this->getWebDavURL();
 
         $header = array();
-        $header[] = "Authorization: Bearer ".\Powerfolder\OAuth::getAccessToken();
+        $header[] = self::getAuthHeader();
 
         $r = curl_init();
         curl_setopt($r, CURLOPT_CUSTOMREQUEST, "DELETE");
         curl_setopt($r, CURLOPT_URL, $webdav . $file_ref_id);
         curl_setopt($r, CURLOPT_HTTPHEADER, ($header));
         curl_setopt($r, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt($r, CURLOPT_SSL_VERIFYPEER, (bool) Config::get()->POWERFOLDER_SSL_VERIFYPEER);
+        curl_setopt($r, CURLOPT_SSL_VERIFYHOST, (bool) Config::get()->POWERFOLDER_SSL_VERIFYPEER);
+        if ($GLOBALS['POWERFOLDER_VERBOSE']) {
+            curl_setopt($r, CURLOPT_VERBOSE, true);
+        }
 
         curl_exec($r);
         $status = curl_getinfo($r, CURLINFO_HTTP_CODE);
@@ -90,7 +100,57 @@ class PowerfolderFolder extends VirtualFolderType {
         return ($status >= 200) && ($status < 300);
     }
 
-    public function createFile($filedata)
+    public function addFile(FileType $file, $user_id = null)
+    {
+        $webdav = $this->getWebDavURL();
+
+        if ($this->fileExists($file->getFilename())) {
+            if (strpos($filedata['name'], ".")) {
+                $end = substr($filedata['name'], strpos($filedata['name'], "."));
+                $name_raw = substr($filedata['name'], 0, strpos($filedata['name'], "."));
+            } else {
+                $name_raw = $filedata['name'];
+            }
+            $i = 0;
+            do {
+                $i++;
+                $new_name = $name_raw."(".$i.").".$end;
+            } while ($this->fileExists($new_name));
+            $filedata['name'] = $new_name;
+            $file->data['name'] = $new_name;
+        }
+
+        $file_ref_id = $this->id . (mb_strlen($this->id) ? '/' : '') . rawurlencode($file->getFilename());
+
+        $header = array();
+        $header[] = self::getAuthHeader();
+
+        $data = $file->getPath();
+        //Verlinkungen URLFile extra berücksichtigen?  $url_template = "[InternetShortcut]\nURL=%s";
+        $fh_res = fopen($data, 'r');
+
+        $r = curl_init();
+        curl_setopt($r, CURLOPT_PUT, 1);
+        curl_setopt($r, CURLOPT_URL, $webdav . $file_ref_id);
+        curl_setopt($r, CURLOPT_HTTPHEADER, ($header));
+        curl_setopt($r, CURLOPT_INFILE, $fh_res);
+        curl_setopt($r, CURLOPT_INFILESIZE, filesize($data));
+        curl_setopt($r, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt($r, CURLOPT_SSL_VERIFYPEER, (bool) Config::get()->POWERFOLDER_SSL_VERIFYPEER);
+        curl_setopt($r, CURLOPT_SSL_VERIFYHOST, (bool) Config::get()->POWERFOLDER_SSL_VERIFYPEER);
+        if ($GLOBALS['POWERFOLDER_VERBOSE']) {
+            curl_setopt($r, CURLOPT_VERBOSE, true);
+        }
+        curl_exec($r);
+        $status = curl_getinfo($r, CURLINFO_HTTP_CODE);
+        curl_close($r);
+        fclose($fh_res);
+
+        $plugin = PluginManager::getInstance()->getPlugin("PowerfolderPlugin");
+        return $plugin->getPreparedFile($file_ref_id);
+    }
+
+    /*public function createFile($filedata)
     {
         $webdav = $this->getWebDavURL();
 
@@ -111,7 +171,7 @@ class PowerfolderFolder extends VirtualFolderType {
         $file_ref_id = $this->id . (mb_strlen($this->id) ? '/' : '') . rawurlencode($filedata['name']);
 
         $header = array();
-        $header[] = "Authorization: Bearer ".\Powerfolder\OAuth::getAccessToken();
+        $header[] = PowerfolderFolder::getAuthHeader();
 
 
         $url_template = "[InternetShortcut]\nURL=%s";
@@ -148,7 +208,7 @@ class PowerfolderFolder extends VirtualFolderType {
 
         $plugin = PluginManager::getInstance()->getPlugin("PowerfolderPlugin");
         return $plugin->getPreparedFile($file_ref_id);
-    }
+    }*/
 
     public function copyFile($file_ref_id)
     {
@@ -175,7 +235,7 @@ class PowerfolderFolder extends VirtualFolderType {
         $destination = $this->id . (mb_strlen($this->id) ? '/' : '') . rawurlencode($name);
 
         $header = array();
-        $header[] = "Authorization: Bearer ".\Powerfolder\OAuth::getAccessToken();
+        $header[] = self::getAuthHeader();
         $header[] = "Destination: ". $webdav . $destination;
 
         $r = curl_init();
@@ -183,6 +243,11 @@ class PowerfolderFolder extends VirtualFolderType {
         curl_setopt($r, CURLOPT_URL, $webdav . $file_ref_id);
         curl_setopt($r, CURLOPT_HTTPHEADER, ($header));
         curl_setopt($r, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt($r, CURLOPT_SSL_VERIFYPEER, (bool) Config::get()->POWERFOLDER_SSL_VERIFYPEER);
+        curl_setopt($r, CURLOPT_SSL_VERIFYHOST, (bool) Config::get()->POWERFOLDER_SSL_VERIFYPEER);
+        if ($GLOBALS['POWERFOLDER_VERBOSE']) {
+            curl_setopt($r, CURLOPT_VERBOSE, true);
+        }
 
         curl_exec($r);
         $status = curl_getinfo($r, CURLINFO_HTTP_CODE);
@@ -216,7 +281,7 @@ class PowerfolderFolder extends VirtualFolderType {
         $destination = $this->id . (mb_strlen($this->id)?'/':'') . rawurlencode($name);
 
         $header = array();
-        $header[] = "Authorization: Bearer ".\Powerfolder\OAuth::getAccessToken();
+        $header[] = self::getAuthHeader();
         $header[] = "Destination: ". $webdav . $destination;
 
         $r = curl_init();
@@ -224,6 +289,11 @@ class PowerfolderFolder extends VirtualFolderType {
         curl_setopt($r, CURLOPT_URL, $webdav . $file_ref_id);
         curl_setopt($r, CURLOPT_HTTPHEADER, ($header));
         curl_setopt($r, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt($r, CURLOPT_SSL_VERIFYPEER, (bool) Config::get()->POWERFOLDER_SSL_VERIFYPEER);
+        curl_setopt($r, CURLOPT_SSL_VERIFYHOST, (bool) Config::get()->POWERFOLDER_SSL_VERIFYPEER);
+        if ($GLOBALS['POWERFOLDER_VERBOSE']) {
+            curl_setopt($r, CURLOPT_VERBOSE, true);
+        }
 
         curl_exec($r);
         $status = curl_getinfo($r, CURLINFO_HTTP_CODE);
@@ -257,7 +327,7 @@ class PowerfolderFolder extends VirtualFolderType {
         $destination = $this->id . (mb_strlen($this->id)?'/':'') . rawurlencode($name);
 
         $header = array();
-        $header[] = "Authorization: Bearer ".\Powerfolder\OAuth::getAccessToken();
+        $header[] = self::getAuthHeader();
         $header[] = "Destination: ". $webdav . $destination;
 
         $r = curl_init();
@@ -265,6 +335,11 @@ class PowerfolderFolder extends VirtualFolderType {
         curl_setopt($r, CURLOPT_URL, $webdav . $file_ref_id);
         curl_setopt($r, CURLOPT_HTTPHEADER, ($header));
         curl_setopt($r, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt($r, CURLOPT_SSL_VERIFYPEER, (bool) Config::get()->POWERFOLDER_SSL_VERIFYPEER);
+        curl_setopt($r, CURLOPT_SSL_VERIFYHOST, (bool) Config::get()->POWERFOLDER_SSL_VERIFYPEER);
+        if ($GLOBALS['POWERFOLDER_VERBOSE']) {
+            curl_setopt($r, CURLOPT_VERBOSE, true);
+        }
 
         curl_exec($r);
         $status = curl_getinfo($r, CURLINFO_HTTP_CODE);
@@ -296,7 +371,7 @@ class PowerfolderFolder extends VirtualFolderType {
         $destination = $this->id . (mb_strlen($this->id)?'/':'') . $name;
 
         $header = array();
-        $header[] = "Authorization: Bearer ".\Powerfolder\OAuth::getAccessToken();
+        $header[] = self::getAuthHeader();
 
         $r = curl_init();
 
@@ -304,6 +379,11 @@ class PowerfolderFolder extends VirtualFolderType {
         curl_setopt($r, CURLOPT_URL, $webdav . $destination);
         curl_setopt($r, CURLOPT_HTTPHEADER, ($header));
         curl_setopt($r, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt($r, CURLOPT_SSL_VERIFYPEER, (bool) Config::get()->POWERFOLDER_SSL_VERIFYPEER);
+        curl_setopt($r, CURLOPT_SSL_VERIFYHOST, (bool) Config::get()->POWERFOLDER_SSL_VERIFYPEER);
+        if ($GLOBALS['POWERFOLDER_VERBOSE']) {
+            curl_setopt($r, CURLOPT_VERBOSE, true);
+        }
 
         curl_exec($r);
         $status = curl_getinfo($r, CURLINFO_HTTP_CODE);
@@ -313,7 +393,7 @@ class PowerfolderFolder extends VirtualFolderType {
         return (($status >= 200) && ($status < 300)) ? $plugin->getFolder($destination) : false;
     }
 
-    protected function getWebDavURL()
+    static public function getWebDavURL()
     {
         $parts = parse_url(\Config::get()->POWERFOLDER_ENDPOINT ?: \UserConfig::get($GLOBALS['user']->id)->POWERFOLDER_ENDPOINT_USER);
         $url = $parts['scheme']
@@ -338,15 +418,19 @@ class PowerfolderFolder extends VirtualFolderType {
 
 
         $header = array();
-        $header[] = "Authorization: Bearer ".\Powerfolder\OAuth::getAccessToken();
+        $header[] = self::getAuthHeader();
         $header[] = "Depth: 1";
-        //$header[] = "Content-Type: text/xml";
 
         $r = curl_init();
         curl_setopt($r, CURLOPT_CUSTOMREQUEST, "PROPFIND");
         curl_setopt($r, CURLOPT_URL, $webdav . $this->id);
         curl_setopt($r, CURLOPT_HTTPHEADER, ($header));
         curl_setopt($r, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt($r, CURLOPT_SSL_VERIFYPEER, (bool) Config::get()->POWERFOLDER_SSL_VERIFYPEER);
+        curl_setopt($r, CURLOPT_SSL_VERIFYHOST, (bool) Config::get()->POWERFOLDER_SSL_VERIFYPEER);
+        if ($GLOBALS['POWERFOLDER_VERBOSE']) {
+            curl_setopt($r, CURLOPT_VERBOSE, true);
+        }
 
         $xml = curl_exec($r);
         $info = curl_getinfo($r);
@@ -357,7 +441,7 @@ class PowerfolderFolder extends VirtualFolderType {
         curl_close($r);
 
         if (!$xml) {
-            PageLayout::postError(_("Konnte keine Daten von Powerfolder bekommen."));
+            PageLayout::postError(sprintf(_("Konnte keine Daten von %s bekommen."), Config::get()->POWERFOLDER_NAME));
             $this->subfolders = array();
             $this->files = array();
             $this->did_propfind = true;
@@ -432,77 +516,26 @@ class PowerfolderFolder extends VirtualFolderType {
                         'id' => ($this->id ? $this->id . "/" : "") . rawurlencode($file_attributes['name']),
                         'name' => $file_attributes['name'],
                         'parent_id' => $this->id,
+                        'user_id' => $GLOBALS['user']->id,
                         'range_type' => $this->plugin_id,
                         'range_id' => 'PowerfolderPlugin'
                     ), $this->plugin_id);
                 } else {
                     $content_type = $file_attributes['contenttype'] ?: get_mime_type($file_attributes['name']);
-                    $this->files[] = (object) array(
+                    $this->files[] = new PowerfolderFile([
                         'id' => ($this->id ? $this->id . "/" : "") . rawurlencode($file_attributes['name']),
                         'name' => $file_attributes['name'],
                         'size' => $file_attributes['size'],
                         'mime_type' => $content_type,
                         'description' => "",
-                        'chdate' => $file_attributes['chdate'],
                         'user_id' => $GLOBALS['user']->id,
-                        'download_url' => URLHelper::getURL( "plugins.php/powerfolderplugin/download/".($this->id ? $this->id."/" : "").rawurlencode($file_attributes['name']))
-                    );
+                        'chdate' => $file_attributes['chdate'],
+                        'download_url' => URLHelper::getURL( "plugins.php/powerfolderplugin/download/".($this->id ? $this->id."/" : "") . rawurlencode($file_attributes['name']))
+                    ], $this);
                 }
             }
         }
         $this->did_propfind = true;
-    }
-
-    static public function normalizeURI($uri, $stripslash = true) {
-        $components = parse_url($uri);
-        $normalized = "";
-        if ($components['scheme']) {
-            $normalized .= $components['scheme'] . ":";
-        }
-        if ($components['host']) {
-            $normalized .= "//";
-            if ($components['user']) {
-                $normalized .= rawurlencode(urldecode($components['user']));
-                if ($components['pass']) {
-                    $normalized .= ":".rawurlencode(urldecode($components['pass']));
-                }
-                $normalized .= "@";
-            }
-            $normalized .= $components['host'];
-            if ($components['port']) {
-                $normalized .= ":".$components['port'];
-            }
-        }
-        if ($components['path']) {
-            if ($stripslash && (substr($components['path'], -1)) === "/") {
-                $components['path'] = substr($components['path'], 0, -1);
-            }
-            if ($components['path'] && $normalized) {
-                $normalized .= "/";
-            }
-            if ($stripslash) {
-                $path = preg_split("/\//", $components['path'], PREG_SPLIT_NO_EMPTY);
-            } else {
-                $path = explode("/", $components['path']);
-            }
-            $path = array_map("urldecode", $path);
-            $path = array_map("rawurlencode", $path);
-            $normalized .= implode("/", $path);
-        }
-        if ($components['query']) {
-            $query = explode("&", $components['query']);
-            foreach ($query as $i => $c) {
-                $c = explode("=", $c);
-                $c[1] = rawurlencode(urldecode($c[1]));
-                $c = implode("=", $c);
-                $query[$i] = $c;
-            }
-            $normalized .= "?".implode("&", $query);
-        }
-        if ($components['fragment']) {
-            $normalized .= "#".urlencode(urldecode($components['fragment']));
-        }
-        return $normalized;
     }
 
     public function getFiles()
@@ -565,6 +598,21 @@ class PowerfolderFolder extends VirtualFolderType {
             }
         }
         return false;
+    }
+
+    static public function getAuthHeader()
+    {
+        return "Authorization: Bearer " . \Powerfolder\OAuth::getAccessToken();
+    }
+
+    public function getAdditionalColumns()
+    {
+        return [];
+    }
+
+    public function getAdditionalActionButtons()
+    {
+        return [];
     }
 
 }
