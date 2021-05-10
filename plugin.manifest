@@ -1,4 +1,6 @@
 pluginname=PowerfolderPlugin
 pluginclassname=PowerfolderPlugin
-version=1.1.2
+version=1.2.0
 origin=data-quest
+studipMinVersion=4.6
+studipMaxVersion=5.0.99
